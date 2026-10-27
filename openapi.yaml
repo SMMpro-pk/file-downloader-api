@@ -1,0 +1,338 @@
+openapi: 3.0.3
+info:
+  title: SMMpro File Downloader API
+  description: >
+    Production-grade REST API for SMMpro (https://smmpro.pk/) to detect downloadable files,
+    identify actual formats via binary signatures, extract metadata, discover webpage links,
+    and download files through secure HTTP stream proxies.
+  version: 1.0.0
+  contact:
+    name: SMMpro Team
+    url: https://smmpro.pk/
+servers:
+  - url: /api/v1
+    description: Current API v1 endpoint base
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Returns service operational status and uptime.
+      responses:
+        '200':
+          description: Service is healthy.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+  /version:
+    get:
+      summary: API version
+      description: Returns version and build information.
+      responses:
+        '200':
+          description: API version info.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+  /platforms:
+    get:
+      summary: Supported platforms and file categories
+      description: Returns all supported file categories, formats, limits, and feature flags.
+      responses:
+        '200':
+          description: Platform capabilities.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+  /files/detect:
+    post:
+      summary: Detect direct file URL format
+      description: Determines whether a URL points to a downloadable file and verifies its format using binary signatures.
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FileUrlRequest'
+      responses:
+        '200':
+          description: Detection successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+        '422':
+          $ref: '#/components/responses/422Error'
+        '429':
+          $ref: '#/components/responses/429Error'
+  /files/info:
+    post:
+      summary: Get file metadata
+      description: Returns detailed metadata for a target file URL.
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FileUrlRequest'
+      responses:
+        '200':
+          description: Metadata retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+  /files/inspect:
+    post:
+      summary: Inspect file technical details and security warnings
+      description: Full technical inspection including security warnings, redirects, and format confidence.
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FileUrlRequest'
+      responses:
+        '200':
+          description: File inspection details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+  /extract-links:
+    post:
+      summary: Extract downloadable links from a webpage
+      description: Parses HTML of a public webpage and retrieves candidate downloadable links.
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExtractLinksRequest'
+      responses:
+        '200':
+          description: Extracted links.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+  /download:
+    post:
+      summary: Download file (POST)
+      description: Downloads the file via streaming proxy or redirect mode.
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DownloadRequest'
+      responses:
+        '200':
+          description: Raw streamed file bytes.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '302':
+          description: Redirect to upstream file URL.
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '413':
+          $ref: '#/components/responses/413Error'
+    get:
+      summary: Download file (GET)
+      description: Download file via query parameters for simple browser integrations.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: query
+          name: url
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: mode
+          required: false
+          schema:
+            type: string
+            enum: [stream, redirect]
+            default: stream
+      responses:
+        '200':
+          description: Raw streamed file bytes.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+  /archive/inspect:
+    post:
+      summary: Inspect ZIP archive contents
+      description: Lists archive entries and checks for zip bomb and path traversal attacks without extracting files.
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FileUrlRequest'
+      responses:
+        '200':
+          description: Archive entries and analysis.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          $ref: '#/components/responses/400Error'
+        '403':
+          description: Archive inspection disabled or forbidden destination.
+        '415':
+          description: Unsupported archive format.
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+  schemas:
+    FileUrlRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          example: https://example.com/files/archive.zip
+    ExtractLinksRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          example: https://example.com/downloads
+        limit:
+          type: integer
+          default: 50
+          maximum: 50
+    DownloadRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          example: https://example.com/files/archive.zip
+        mode:
+          type: string
+          enum: [stream, redirect]
+          default: stream
+    SuccessEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+        error:
+          type: object
+          nullable: true
+          example: null
+        requestId:
+          type: string
+          example: req_example123
+    ErrorEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        data:
+          type: object
+          nullable: true
+          example: null
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+              nullable: true
+        requestId:
+          type: string
+  responses:
+    400Error:
+      description: Bad Request / Malformed Input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    401Error:
+      description: Unauthorized / Missing or Invalid API Key
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    403Error:
+      description: Forbidden / Prohibited Network Destination
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    413Error:
+      description: Payload Too Large / Exceeds Maximum Size Limit
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    422Error:
+      description: Unprocessable Entity / Returned HTML Webpage
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    429Error:
+      description: Too Many Requests / Rate Limit Exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'

@@ -1,0 +1,53 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smmpro-file-downloader
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      - API_KEY_REQUIRED=true
+      - API_KEY=replace_with_a_long_random_secret_at_least_32_chars
+      - CORS_ORIGINS=https://smmpro.pk,http://localhost:3000
+      - TRUST_PROXY=true
+      - REQUEST_TIMEOUT_MS=10000
+      - EXTRACT_TIMEOUT_MS=15000
+      - MAX_REDIRECTS=5
+      - MAX_EXTRACTED_LINKS=50
+      - MAX_FILE_SIZE_BYTES=1073741824
+      - MAX_REQUEST_BODY_BYTES=32768
+      - MAX_CONCURRENT_DOWNLOADS=5
+      - DETECTION_RATE_LIMIT=30
+      - DOWNLOAD_RATE_LIMIT=10
+      - LOG_LEVEL=info
+      - ENABLE_ARCHIVE_INSPECTION=false
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1024M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/api/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+    networks:
+      - smmpro-network
+
+networks:
+  smmpro-network:
+    driver: bridge
