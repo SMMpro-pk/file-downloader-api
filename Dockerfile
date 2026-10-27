@@ -32,8 +32,10 @@ COPY src/ ./src/
 COPY openapi.yaml ./
 COPY .env.example ./.env.example
 
-# Set directory permissions for unprivileged node user
-RUN chown -R node:node /usr/src/app
+# Create data and tmp directories and set permissions for unprivileged node user
+RUN mkdir -p /usr/src/app/data /usr/src/app/tmp && \
+    chown -R node:node /usr/src/app && \
+    chmod 750 /usr/src/app/data /usr/src/app/tmp
 
 # Run as non-root user
 USER node
@@ -41,9 +43,9 @@ USER node
 # Expose standard application port
 EXPOSE 3000
 
-# Docker healthcheck
+# Docker healthcheck using dynamic port detection
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/api/v1/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider "http://127.0.0.1:${PORT:-3000}/api/v1/health" || exit 1
 
 # Execute with dumb-init to guarantee clean SIGTERM/SIGINT propagation and graceful draining
 ENTRYPOINT ["dumb-init", "--"]

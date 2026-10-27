@@ -112,6 +112,7 @@ function setupEventListeners() {
   const urlInput = document.getElementById('target-url');
   const btnDetect = document.getElementById('btn-detect');
   const btnInfo = document.getElementById('btn-info');
+  const btnExtract = document.getElementById('btn-extract');
   const btnDownload = document.getElementById('btn-download');
   const btnClear = document.getElementById('btn-clear');
 
@@ -129,6 +130,13 @@ function setupEventListeners() {
     });
   }
 
+  if (btnExtract) {
+    btnExtract.addEventListener('click', (e) => {
+      e.preventDefault();
+      runLinkDiscovery();
+    });
+  }
+
   if (btnDownload) {
     btnDownload.addEventListener('click', (e) => {
       e.preventDefault();
@@ -141,6 +149,7 @@ function setupEventListeners() {
       e.preventDefault();
       if (urlInput) urlInput.value = '';
       hideResults();
+      hideLinksCard();
     });
   }
 
@@ -460,5 +469,127 @@ function formatBytes(bytes) {
 }
 
 function escapeHtml(str) {
-  return str.replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
+  return String(str).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
 }
+
+/**
+ * Discovers downloadable links on a target webpage via the backend proxy.
+ */
+async function runLinkDiscovery() {
+  const urlInput = document.getElementById('target-url');
+  if (!urlInput) return;
+  const rawUrl = urlInput.value.trim();
+
+  hideAlerts();
+  if (!rawUrl) {
+    showAlert('error-box', 'Please enter a valid HTTP or HTTPS webpage URL to discover links.');
+    return;
+  }
+
+  if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
+    showAlert('error-box', 'Invalid URL scheme. Only HTTP and HTTPS URLs are permitted.');
+    return;
+  }
+
+  const btnExtract = document.getElementById('btn-extract');
+  if (btnExtract) {
+    btnExtract.disabled = true;
+    btnExtract.innerHTML = 'Discovering...';
+  }
+
+  try {
+    const res = await fetch('/api/internal/extract-links', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Sec-Fetch-Site': 'same-origin'
+      },
+      body: JSON.stringify({ url: rawUrl, limit: 50 })
+    });
+
+    if (btnExtract) {
+      btnExtract.disabled = false;
+      btnExtract.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Discover Links`;
+    }
+
+    const envelope = await res.json();
+    if (!envelope.success) {
+      const msg = envelope.error?.message || 'Could not extract links from webpage.';
+      showAlert('error-box', `${envelope.error?.code ? `[${envelope.error.code}] ` : ''}${msg}`);
+      hideLinksCard();
+      return;
+    }
+
+    displayDiscoveredLinks(envelope.data);
+  } catch (err) {
+    if (btnExtract) {
+      btnExtract.disabled = false;
+      btnExtract.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Discover Links`;
+    }
+    showAlert('error-box', `Network error: ${err.message}. Ensure the API server is running.`);
+    hideLinksCard();
+  }
+}
+
+/**
+ * Displays discovered links in the dashboard.
+ */
+function displayDiscoveredLinks(data) {
+  const linksCard = document.getElementById('links-card');
+  const linksList = document.getElementById('links-list');
+  const countEl = document.getElementById('links-count');
+  if (!linksCard || !linksList) return;
+
+  const links = data?.links || [];
+  if (countEl) countEl.textContent = links.length;
+
+  if (links.length === 0) {
+    linksList.innerHTML = '<div style="color: var(--gray-500); padding: 1rem; text-align: center;">No downloadable links discovered on this webpage.</div>';
+    linksCard.classList.add('active');
+    return;
+  }
+
+  linksList.innerHTML = '';
+  links.forEach((item) => {
+    const row = document.createElement('div');
+    row.className = 'link-discovery-item';
+
+    const extBadge = item.extension
+      ? `<span class="tag" style="background:#EEF2FF;color:#4F46E5;font-weight:600;">.${escapeHtml(item.extension)}</span>`
+      : '<span class="tag" style="background:var(--gray-100);color:var(--gray-600);">link</span>';
+
+    row.innerHTML = `
+      <div class="link-discovery-info">
+        ${extBadge}
+        <span class="link-discovery-url" title="${escapeHtml(item.url)}">${escapeHtml(item.label || item.url)}</span>
+      </div>
+      <div class="link-discovery-actions">
+        <button class="btn btn-secondary btn-sm btn-inspect-link" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;" data-url="${escapeHtml(item.url)}">
+          Inspect
+        </button>
+      </div>
+    `;
+
+    const inspectBtn = row.querySelector('.btn-inspect-link');
+    if (inspectBtn) {
+      inspectBtn.addEventListener('click', () => {
+        const input = document.getElementById('target-url');
+        if (input) {
+          input.value = item.url;
+          window.scrollTo({ top: input.offsetTop - 100, behavior: 'smooth' });
+          runFileDetection('detect');
+        }
+      });
+    }
+
+    linksList.appendChild(row);
+  });
+
+  linksCard.classList.add('active');
+}
+
+function hideLinksCard() {
+  const linksCard = document.getElementById('links-card');
+  if (linksCard) linksCard.classList.remove('active');
+}
+

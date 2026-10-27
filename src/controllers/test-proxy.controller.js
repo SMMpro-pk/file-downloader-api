@@ -1,5 +1,6 @@
 import { MetadataService } from '../services/metadata.service.js';
 import { DownloadService } from '../services/download.service.js';
+import { LinkExtractorService } from '../services/link-extractor.service.js';
 import { logger, sanitizeUrlForLogging } from '../utils/logger.js';
 import { AppError } from '../utils/errors.js';
 
@@ -114,9 +115,31 @@ export async function proxyDownload(req, res, next) {
   }
 }
 
+export async function proxyExtractLinks(req, res, next) {
+  try {
+    const { url, limit } = req.body;
+    const allowLocalTest = process.env.NODE_ENV === 'test' && req.headers['x-allow-local-test'] === 'true';
+
+    logger.info(
+      { requestId: req.id, url: sanitizeUrlForLogging(url), limit },
+      'Dashboard proxy extracting webpage download links'
+    );
+
+    const result = await LinkExtractorService.extractLinks(url, {
+      limit,
+      allowLocalTest
+    });
+
+    return res.jsonEnvelope(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export default {
   verifySameOrigin,
   proxyDetect,
   proxyInfo,
-  proxyDownload
+  proxyDownload,
+  proxyExtractLinks
 };

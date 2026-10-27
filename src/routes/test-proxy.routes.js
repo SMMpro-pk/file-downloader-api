@@ -3,11 +3,13 @@ import { validateRequest } from '../middleware/validation.middleware.js';
 import { detectionRateLimiter, downloadRateLimiter } from '../middleware/rate-limit.middleware.js';
 import { fileUrlSchema } from '../schemas/file.schema.js';
 import { downloadSchema } from '../schemas/download.schema.js';
+import { extractLinksSchema } from '../schemas/extract.schema.js';
 import {
   verifySameOrigin,
   proxyDetect,
   proxyInfo,
-  proxyDownload
+  proxyDownload,
+  proxyExtractLinks
 } from '../controllers/test-proxy.controller.js';
 
 const router = Router();
@@ -27,6 +29,13 @@ router.post(
   detectionRateLimiter,
   validateRequest({ body: fileUrlSchema }),
   proxyInfo
+);
+
+router.post(
+  '/extract-links',
+  detectionRateLimiter,
+  validateRequest({ body: extractLinksSchema }),
+  proxyExtractLinks
 );
 
 router.post(

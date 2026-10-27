@@ -68,31 +68,30 @@ Built with **Node.js 22 LTS** in pure **ES Modules**, this service provides a ro
 
 ## 4. Easy Deployment (One-Click & GitHub-Integrated)
 
-Deploy the SMMpro File Downloader API in minutes with zero manual server configuration. The application binds to `0.0.0.0:${PORT}`, supports Docker containerization, automatically discovers its public origin, and includes an interactive Live Testing Dashboard at `/test`.
+Deploy the SMMpro File Downloader API in minutes with zero manual server configuration. The application binds to `0.0.0.0:${PORT:-3000}`, supports Docker containerization without requiring a `.env` file, automatically discovers its public origin, and includes an interactive Live Testing Dashboard at `/test`.
 
-### 1. Create or Clone the Repository
-Fork or push this repository to your GitHub account:
+### 1. Instant Docker Quickstart (Zero Configuration)
+You do NOT need to create a `.env` file. Clone and run immediately with sensible defaults:
 ```bash
 git clone https://github.com/SMMpro-pk/file-downloader-api.git
 cd file-downloader-api
-```
 
-### 2. Configure Environment Variables
-Copy `.env.example` to review supported options:
-```bash
-cp .env.example .env
+# Start immediately in Docker (zero manual configuration required)
+docker compose up -d --build
 ```
-Key production variables:
-```ini
-NODE_ENV=production
-PORT=3000
-PUBLIC_BASE_URL=https://api.yourdomain.com
-API_BASE_PATH=/api/v1
-FRONTEND_BASE_URL=
-API_KEY_REQUIRED=true
-API_KEY=your_generated_32_character_hex_secret
-CORS_ORIGINS=*
-```
+Open [http://localhost:3000](http://localhost:3000) for the API overview or [http://localhost:3000/test](http://localhost:3000/test) to test URL inspection, metadata extraction, webpage link discovery, and downloads live in your browser.
+
+### 2. Zero-Configuration vs. Optional Host Settings
+
+| Feature / Setting | Zero Configuration (Default) | Optional Host Override | Description |
+|:---|:---|:---|:---|
+| **Port Binding** | `PORT=3000` on `0.0.0.0` | `process.env.PORT` | Dynamically adapts to hosting provider port assignment |
+| **Authentication** | `API_KEY_REQUIRED=false` (Public API) | `API_KEY_REQUIRED=true`<br>`API_KEY=<secret>` | If required without a key supplied, a stable 32-byte key is automatically generated and persisted in `data/.api-key` (mode `0o600`) |
+| **Public URL Discovery** | Auto-detected for Render, Railway, Fly.io, Vercel, Heroku, Koyeb | `PUBLIC_BASE_URL=https://your-domain.com` | Override for custom VPS, domains, or reverse proxies without recognized cloud hostname envs |
+| **CORS Policy** | `CORS_ORIGINS=*` (Universal access) | `CORS_ORIGINS=https://smmpro.pk,https://app.smmpro.pk` | Restricts API access to specific approved origins |
+| **Directory Initialization** | `data/` & `tmp/` auto-created | Mounted Docker volumes (`smmpro-data`, `smmpro-tmp`) | Preserves runtime data and cached keys without user intervention |
+| **SSRF & Private IP Shield** | Fully Active | Cannot be bypassed in production | Blocks loopback, RFC 1918 private subnets, cloud metadata (169.254.169.254) |
+| **Interactive Test Dashboard** | Live at `/test` | Same-origin backend proxy (`/api/internal/*`) | Allows live testing of file inspection, metadata, webpage link extraction, and download stream |
 
 ### 3. Deploy via GitHub-Integrated Hosting Providers
 

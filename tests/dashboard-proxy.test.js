@@ -209,6 +209,19 @@ describe('Dashboard Same-Origin Proxy & URL Discovery Service', () => {
       expect(received.equals(VALID_ZIP_BUFFER)).toBe(true);
     });
 
+    it('POST /api/internal/extract-links discovers downloadable links on webpage without client API key', async () => {
+      const res = await request(app)
+        .post('/api/internal/extract-links')
+        .set('x-test-internal-proxy', 'true')
+        .set('x-allow-local-test', 'true')
+        .send({ url: `${mock.baseUrl}/html-page`, limit: 10 });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.totalCandidates).toBeGreaterThan(0);
+      expect(res.body.data.links.some((l) => l.url.includes('/valid.zip'))).toBe(true);
+    });
+
     it('blocks cross-origin access to /api/internal endpoints with 403 Forbidden', async () => {
       const res = await request(app)
         .post('/api/internal/detect')

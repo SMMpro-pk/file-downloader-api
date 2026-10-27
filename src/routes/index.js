@@ -27,8 +27,8 @@ try {
 
 const router = Router();
 
-// OpenAPI Specification JSON endpoint
-router.get('/api/v1/openapi.json', (req, res) => {
+// OpenAPI Specification JSON endpoints
+router.get(['/api/openapi.json', '/api/v1/openapi.json'], (req, res) => {
   res.json(openApiSpec);
 });
 

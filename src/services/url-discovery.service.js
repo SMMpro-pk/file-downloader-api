@@ -98,6 +98,7 @@ export class UrlDiscoveryService {
 
     return {
       appName: 'SMMpro File Downloader',
+      version: '1.0.0',
       brand: {
         name: 'SMMpro'
       },

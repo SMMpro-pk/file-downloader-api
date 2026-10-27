@@ -16,74 +16,79 @@ Product: **SMMpro File Downloader API**
 
 ---
 
-## 2. Docker & Docker Compose Deployment (Recommended)
+## 2. Docker & Docker Compose Deployment (Zero-Manual-Configuration)
 
-### A. Prerequisites
-Ensure Docker and Docker Compose plugin are installed:
+The SMMpro File Downloader API is built for **Docker-first, zero-manual-configuration** deployment. You can launch the container directly using `docker compose up -d` or `docker run` without manually creating or configuring a `.env` file.
+
+### A. Instant Zero-Configuration Startup
 ```bash
-sudo apt-get update
-sudo apt-get install -y ca-certificates curl gnupg
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt-get update
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-```
+# 1. Clone the repository
+git clone https://github.com/smmpro/smmpro-file-downloader-api.git /opt/smmpro-file-downloader
+cd /opt/smmpro-file-downloader
 
-### B. Configuration
-1. Clone the repository and navigate to the project directory:
-   ```bash
-   git clone https://github.com/smmpro/smmpro-file-downloader-api.git /opt/smmpro-file-downloader
-   cd /opt/smmpro-file-downloader
-   ```
-
-2. Create the production `.env` file from `.env.example`:
-   ```bash
-   cp .env.example .env
-   ```
-
-3. Generate a cryptographically secure 32+ character API key:
-   ```bash
-   openssl rand -hex 32
-   ```
-
-4. Edit `.env` with production values:
-   ```ini
-   NODE_ENV=production
-   PORT=3000
-   HOST=0.0.0.0
-   API_KEY_REQUIRED=true
-   API_KEY=your_generated_64_character_hex_secret_here
-   CORS_ORIGINS=https://smmpro.pk
-   TRUST_PROXY=true
-   REQUEST_TIMEOUT_MS=10000
-   EXTRACT_TIMEOUT_MS=15000
-   MAX_REDIRECTS=5
-   MAX_EXTRACTED_LINKS=50
-   MAX_FILE_SIZE_BYTES=1073741824
-   MAX_CONCURRENT_DOWNLOADS=5
-   DETECTION_RATE_LIMIT=30
-   DOWNLOAD_RATE_LIMIT=10
-   LOG_LEVEL=info
-   ENABLE_ARCHIVE_INSPECTION=false
-   ```
-
-### C. Build and Start Container
-```bash
+# 2. Start container directly (NO .env file required!)
 docker compose up -d --build
 ```
+The application will automatically:
+- Start with safe, production-ready defaults.
+- Bind to `0.0.0.0:${PORT:-3000}`.
+- Auto-initialize `data/` and `tmp/` runtime directories with secure `0o750` permissions.
+- Provide full access to the Homepage (`/`), Live Testing Dashboard (`/test`), OpenAPI spec (`/api/openapi.json`), Swagger UI (`/api/docs`), and Health endpoints (`/api/v1/health`, `/api/v1/ready`).
 
-### D. Verify Deployment
+### B. Feature Configuration Matrix: Zero-Config vs Optional Host Settings
+
+| Feature / Setting | Zero Configuration (Default) | Optional Host Setting Override | Purpose / Behavior |
+|:---|:---|:---|:---|
+| **Port Binding** | `PORT=3000` on `0.0.0.0` | `PORT=<host-assigned-port>` | Respects hosting platform's runtime port dynamically |
+| **Authentication** | `API_KEY_REQUIRED=false` (Public API) | `API_KEY_REQUIRED=true`<br>`API_KEY=<secret>` | When enabled without `API_KEY`, a stable 32-byte key is automatically generated and saved to `data/.api-key` (mode `0o600`) |
+| **Public URL Discovery** | Auto-detected for Render, Railway, Fly.io, Vercel, Heroku, Koyeb | `PUBLIC_BASE_URL=https://your-domain.com` | Override for custom VPS, domains, or reverse proxies without recognized cloud hostname envs |
+| **CORS Policy** | `CORS_ORIGINS=*` (Universal access) | `CORS_ORIGINS=https://smmpro.pk,https://app.smmpro.pk` | Restricts API access to specific approved origins |
+| **Directory Initialization** | `data/` & `tmp/` auto-created | Mounted Docker volumes (`smmpro-data`, `smmpro-tmp`) | Preserves runtime data and cached keys without user intervention |
+| **Temporary Files** | In-flight streaming (zero permanent disk footprint) | N/A | High throughput, backpressure-controlled streaming |
+| **SSRF & Private IP Shield** | Fully Active | Cannot be bypassed in production | Blocks loopback, RFC 1918 private subnets, cloud metadata (169.254.169.254) |
+| **Interactive Test Dashboard** | Live at `/test` | Same-origin backend proxy (`/api/internal/*`) | Allows live testing of file inspection, metadata, webpage link extraction, and download stream |
+| **Archive Inspection** | `ENABLE_ARCHIVE_INSPECTION=false` | `ENABLE_ARCHIVE_INSPECTION=true` | Enables in-memory ZIP Central Directory inspection |
+
+### C. Persistent Storage & Stable API Keys
+When deployed with `docker-compose.yml`, persistent storage is managed via the `smmpro-data` named volume:
+- If `API_KEY_REQUIRED=true` and no `API_KEY` is provided in environment variables, the server generates a stable 32-byte cryptographic key and stores it in `/usr/src/app/data/.api-key`.
+- **Container Restarts:** The server checks `data/.api-key` on startup and reuses the existing key, ensuring API keys do not rotate arbitrarily on container restarts.
+
+#### How to Inspect or Rotate the Stable Key:
 ```bash
-# Check container status
+# Retrieve the generated stable API key:
+docker exec smmpro-file-downloader cat /usr/src/app/data/.api-key
+
+# To rotate the key:
+# Option 1: Provide a new key via environment variable:
+#   API_KEY=my_new_secret_key_at_least_32_characters docker compose up -d
+# Option 2: Remove the persisted key file and restart:
+docker exec smmpro-file-downloader rm -f /usr/src/app/data/.api-key
+docker compose restart
+```
+
+### D. Single Container Docker Run (Without Compose)
+```bash
+docker build -t smmpro-file-downloader .
+docker run -d \
+  --name smmpro-file-downloader \
+  -p 3000:3000 \
+  -v smmpro-data:/usr/src/app/data \
+  smmpro-file-downloader
+```
+
+### E. Verify Container Deployment
+```bash
+# Check container status & healthcheck
 docker compose ps
 
-# Check container healthcheck status
-docker inspect --format='{{json .State.Health}}' smmpro-file-downloader
-
-# Test health endpoint
+# Test health check endpoint
 curl -i http://localhost:3000/api/v1/health
 
-# View structured logs
+# Test public configuration endpoint
+curl -i http://localhost:3000/api/v1/config/public
+
+# View real-time JSON logs
 docker compose logs -f api
 ```
 

@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
@@ -97,13 +100,54 @@ const envSchema = z.object({
     .default(false)
 });
 
+export function resolveStableApiKey(dataDir = path.join(process.cwd(), 'data'), suppliedKey = '') {
+  if (suppliedKey && suppliedKey.length >= 16) {
+    return { key: suppliedKey, source: 'environment' };
+  }
+  const keyFilePath = path.join(dataDir, '.api-key');
+  if (fs.existsSync(keyFilePath)) {
+    try {
+      const persisted = fs.readFileSync(keyFilePath, 'utf8').trim();
+      if (persisted && persisted.length >= 16) {
+        return { key: persisted, source: 'file' };
+      }
+    } catch {
+      // Fall through to generate
+    }
+  }
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true, mode: 0o750 });
+  }
+  const generatedKey = crypto.randomBytes(32).toString('hex');
+  fs.writeFileSync(keyFilePath, generatedKey, { mode: 0o600, encoding: 'utf8' });
+  return { key: generatedKey, source: 'generated' };
+}
+
 let parsedEnv;
 try {
   parsedEnv = envSchema.parse(process.env);
 
-  // Validate API key requirements if enforced
-  if (parsedEnv.API_KEY_REQUIRED && (!parsedEnv.API_KEY || parsedEnv.API_KEY.length < 16)) {
-    throw new Error('API_KEY is required and must be at least 16 characters when API_KEY_REQUIRED is enabled.');
+  // Automatically initialize required runtime directories (temporary files, persistent data)
+  const runtimeDirs = [path.join(process.cwd(), 'tmp'), path.join(process.cwd(), 'data')];
+  for (const dir of runtimeDirs) {
+    if (!fs.existsSync(dir)) {
+      try {
+        fs.mkdirSync(dir, { recursive: true, mode: 0o750 });
+      } catch {
+        // Read-only filesystem or restricted container permissions handled gracefully
+      }
+    }
+  }
+
+  // If API_KEY_REQUIRED is enabled, verify or resolve a stable persistent key
+  if (parsedEnv.API_KEY_REQUIRED) {
+    if (!parsedEnv.API_KEY || parsedEnv.API_KEY.length < 16) {
+      const { key, source } = resolveStableApiKey(path.join(process.cwd(), 'data'), parsedEnv.API_KEY);
+      parsedEnv.API_KEY = key;
+      if (source === 'generated') {
+        console.info(`[SECURITY] Stable API key generated and persisted to 'data/.api-key'. Supply API_KEY environment variable to override.`);
+      }
+    }
   }
 } catch (error) {
   // Safe, non-sensitive error formatting
