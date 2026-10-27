@@ -235,9 +235,39 @@ async function runFileDetection(action = 'detect') {
     setLoading(false);
 
     if (!envelope.success) {
+      hideResults(true);
+      const errCode = envelope.error?.code;
       const msg = envelope.error?.message || 'Could not process the submitted URL.';
-      showAlert('error-box', `${envelope.error?.code ? `[${envelope.error.code}] ` : ''}${msg}`);
-      hideResults();
+
+      if (errCode === 'UNPROCESSABLE_ENTITY') {
+        const customHtml = `
+          <div style="display: flex; flex-direction: column; gap: 0.6rem; width: 100%;">
+            <div style="font-weight: 700; font-size: 0.95rem; color: #92400E; display: flex; align-items: center; gap: 0.5rem;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Webpage / Blog Article Detected
+            </div>
+            <div style="color: #78350F; font-size: 0.875rem; line-height: 1.4;">
+              The submitted URL is an <strong>HTML webpage</strong> rather than a direct downloadable file binary. SMMpro can automatically scan this webpage to discover and extract all downloadable files inside it!
+            </div>
+            <div>
+              <button id="btn-auto-extract" class="btn btn-primary btn-sm" style="margin-top: 0.25rem;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                Discover Downloadable Links on this Page
+              </button>
+            </div>
+          </div>
+        `;
+        showCustomAlert('warn-box', customHtml);
+        const autoExtractBtn = document.getElementById('btn-auto-extract');
+        if (autoExtractBtn) {
+          autoExtractBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            runLinkDiscovery();
+          });
+        }
+      } else {
+        showAlert('error-box', `${errCode ? `[${errCode}] ` : ''}${msg}`);
+      }
       return;
     }
 
@@ -246,7 +276,7 @@ async function runFileDetection(action = 'detect') {
   } catch (err) {
     setLoading(false);
     showAlert('error-box', `Network error: ${err.message}. Ensure the API server is running.`);
-    hideResults();
+    hideResults(true);
   }
 }
 
@@ -446,18 +476,28 @@ function showAlert(id, message) {
   }
 }
 
+function showCustomAlert(id, html) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.innerHTML = html;
+    el.classList.add('active');
+  }
+}
+
 function hideAlerts() {
   document.querySelectorAll('.alert').forEach((el) => {
     el.classList.remove('active');
   });
 }
 
-function hideResults() {
+function hideResults(preserveAlerts = false) {
   const resultsCard = document.getElementById('results-card');
   if (resultsCard) resultsCard.classList.remove('active');
   const btnDownload = document.getElementById('btn-download');
   if (btnDownload) btnDownload.disabled = true;
-  hideAlerts();
+  if (!preserveAlerts) {
+    hideAlerts();
+  }
 }
 
 function formatBytes(bytes) {
@@ -550,13 +590,25 @@ function displayDiscoveredLinks(data) {
   }
 
   linksList.innerHTML = '';
-  links.forEach((item) => {
+  // Prioritize downloadable files with known file extensions first
+  const sortedLinks = [...links].sort((a, b) => {
+    const aIsFile = Boolean(a.extension && a.category && a.category !== 'unknown');
+    const bIsFile = Boolean(b.extension && b.category && b.category !== 'unknown');
+    if (aIsFile && !bIsFile) return -1;
+    if (!aIsFile && bIsFile) return 1;
+    return 0;
+  });
+
+  sortedLinks.forEach((item) => {
     const row = document.createElement('div');
     row.className = 'link-discovery-item';
 
-    const extBadge = item.extension
-      ? `<span class="tag" style="background:#EEF2FF;color:#4F46E5;font-weight:600;">.${escapeHtml(item.extension)}</span>`
-      : '<span class="tag" style="background:var(--gray-100);color:var(--gray-600);">link</span>';
+    const isFile = Boolean(item.extension && item.category && item.category !== 'unknown');
+    const extBadge = isFile
+      ? `<span class="tag" style="background:#DCFCE7;color:#15803D;font-weight:700;font-size:0.75rem;">.${escapeHtml(item.extension.toUpperCase())}</span>`
+      : (item.extension
+        ? `<span class="tag" style="background:#EEF2FF;color:#4F46E5;font-weight:600;font-size:0.75rem;">.${escapeHtml(item.extension)}</span>`
+        : '<span class="tag" style="background:var(--gray-100);color:var(--gray-600);font-size:0.75rem;">link</span>');
 
     row.innerHTML = `
       <div class="link-discovery-info">
@@ -565,7 +617,7 @@ function displayDiscoveredLinks(data) {
       </div>
       <div class="link-discovery-actions">
         <button class="btn btn-secondary btn-sm btn-inspect-link" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;" data-url="${escapeHtml(item.url)}">
-          Inspect
+          Inspect File
         </button>
       </div>
     `;
