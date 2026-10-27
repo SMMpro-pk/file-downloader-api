@@ -48,19 +48,85 @@
       </div>
     </div>
 
-    <!-- Live API Status Bar -->
-    <div style="background-color: var(--primary-subtle); border: 1px solid var(--primary-light); border-radius: var(--radius-md); padding: 1rem 1.25rem; margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
-      <div style="display: flex; align-items: center; gap: 0.75rem;">
-        <span class="status-pill status-live"><span class="status-dot"></span><span class="status-text">Connected</span></span>
-        <span style="font-size: 0.9rem; color: var(--navy); font-weight: 500;">
-          API Base URL: <strong id="display-api-url" style="font-family: var(--font-mono); color: var(--primary);">/api/v1</strong>
+    <!-- Live Deployment Information & Status Dashboard -->
+    <div class="deployment-banner" style="margin-bottom: 2rem;">
+      <div class="deployment-header">
+        <h2 class="deployment-title" style="font-size: 1.15rem;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+          Deployment & Live API Configuration
+        </h2>
+        <span class="status-pill status-live">
+          <span class="status-dot"></span>
+          <span class="status-text">Connected</span>
         </span>
       </div>
-      <div style="display: flex; gap: 0.5rem;">
-        <button class="btn btn-sm btn-secondary btn-copy" data-target="display-api-url">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-          Copy Base URL
-        </button>
+
+      <!-- Setup instructions box when public URL is not automatically detected -->
+      <div class="config-help-box alert alert-warning" style="display: none; margin-bottom: 1.25rem;">
+        <div style="font-weight: 700; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.5rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Public Deployment URL Configuration Required
+        </div>
+        <div class="config-help-text">
+          Public URL not automatically detected. To expose this API to external clients, configure the <code>PUBLIC_BASE_URL</code> environment variable in your hosting provider's dashboard (e.g. <code>PUBLIC_BASE_URL=https://your-assigned-domain.com</code>).
+        </div>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-label">Public Deployment URL</div>
+          <div class="info-value-wrap">
+            <span class="info-value" id="display-public-url">Detecting...</span>
+            <button class="btn-copy" data-target="display-public-url" title="Copy Public URL">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="info-item">
+          <div class="info-label">API Base URL (Frontend Integration)</div>
+          <div class="info-value-wrap">
+            <span class="info-value" id="display-api-url">/api/v1</span>
+            <button class="btn-copy" data-target="display-api-url" title="Copy API Base URL">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="info-item">
+          <div class="info-label">Health & Readiness Endpoint</div>
+          <div class="info-value-wrap">
+            <a href="/api/v1/health" id="link-health" target="_blank" class="info-value" style="text-decoration: underline;"><span id="display-health-url">/api/v1/health</span></a>
+            <button class="btn-copy" data-target="display-health-url" title="Copy Health Endpoint URL">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="info-item">
+          <div class="info-label">Interactive API Documentation</div>
+          <div class="info-value-wrap">
+            <a href="/api/docs" id="link-docs" class="info-value" style="text-decoration: underline;"><span id="display-docs-url">/api/docs</span></a>
+            <button class="btn-copy" data-target="display-docs-url" title="Copy API Documentation URL">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="info-item">
+          <div class="info-label">Testing Page URL</div>
+          <div class="info-value-wrap">
+            <a href="/test" id="link-test" class="info-value" style="text-decoration: underline;"><span id="display-test-url">/test</span></a>
+            <button class="btn-copy" data-target="display-test-url" title="Copy Testing Dashboard URL">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="info-item">
+          <div class="info-label">Authentication Mode</div>
+          <div class="info-value" id="display-auth-status">Checking...</div>
+        </div>
       </div>
     </div>
 

@@ -16,7 +16,6 @@ server.listen(env.PORT, env.HOST, () => {
   logger.info({
     brand: 'SMMpro',
     product: 'SMMpro File Downloader API',
-    website: 'https://smmpro.pk/',
     port: env.PORT,
     host: env.HOST,
     environment: env.NODE_ENV,

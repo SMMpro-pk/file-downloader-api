@@ -45,6 +45,19 @@ const envSchema = z.object({
         return '';
       }
     }),
+  LOCAL_BASE_URL: z
+    .string()
+    .optional()
+    .default('')
+    .transform((val) => {
+      if (!val || !val.trim()) return '';
+      try {
+        const u = new URL(val.trim());
+        return u.origin;
+      } catch {
+        return '';
+      }
+    }),
   API_KEY_REQUIRED: z
     .string()
     .transform((val) => val === 'true' || val === '1')
@@ -52,8 +65,12 @@ const envSchema = z.object({
   API_KEY: z.string().optional().default(''),
   CORS_ORIGINS: z
     .string()
-    .transform((val) => val.split(',').map((o) => o.trim()).filter(Boolean))
-    .default('http://localhost:3000,https://smmpro.pk'),
+    .optional()
+    .default('*')
+    .transform((val) => {
+      if (!val || val.trim() === '' || val.trim() === '*') return ['*'];
+      return val.split(',').map((o) => o.trim()).filter(Boolean);
+    }),
   TRUST_PROXY: z
     .string()
     .transform((val) => {

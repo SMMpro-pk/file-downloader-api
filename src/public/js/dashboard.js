@@ -35,7 +35,7 @@ async function loadPublicConfig() {
  * Updates UI elements with actual live deployment URLs and statuses.
  */
 function updateDashboardUI(config) {
-  const { deploymentStatus, publicBaseUrl, apiBaseUrl, docsUrl, healthUrl, testPageUrl, apiKeyRequired } = config;
+  const { deploymentStatus, publicBaseUrl, apiBaseUrl, docsUrl, healthUrl, testPageUrl, apiKeyRequired, configurationHelp } = config;
 
   // 1. Update Status Pill
   if (deploymentStatus === 'live') {
@@ -47,8 +47,9 @@ function updateDashboardUI(config) {
   }
 
   // 2. Update Live URLs
+  const displayPublic = publicBaseUrl || 'Awaiting configuration (set PUBLIC_BASE_URL)';
   setTextContent('display-app-name', config.appName || 'SMMpro File Downloader');
-  setTextContent('display-public-url', publicBaseUrl || 'Not configured (set PUBLIC_BASE_URL)');
+  setTextContent('display-public-url', displayPublic);
   setTextContent('display-api-url', apiBaseUrl || '/api/v1');
   setTextContent('display-health-url', healthUrl || '/api/v1/health');
   setTextContent('display-docs-url', docsUrl || '/api/docs');
@@ -60,18 +61,25 @@ function updateDashboardUI(config) {
   setHref('link-health', healthUrl || '/api/v1/health');
   setHref('link-test', testPageUrl || '/test');
 
-  // 4. Update curl code snippets with live API URL
-  const base = apiBaseUrl || 'http://localhost:3000/api/v1';
+  // 4. Update curl code snippets dynamically with resolved API URL
+  const base = publicBaseUrl ? apiBaseUrl : 'https://YOUR_DEPLOYED_DOMAIN/api/v1';
   const curlDetect = `curl -X POST "${base}/files/detect" \\\n  -H "Content-Type: application/json" \\\n  -d '{"url":"https://example.com/file.zip"}'`;
   setTextContent('curl-detect-snippet', curlDetect);
 
   const curlDownload = `curl -fL -X POST "${base}/download" \\\n  -H "Content-Type: application/json" \\\n  -d '{"url":"https://example.com/file.zip","mode":"stream"}' \\\n  -o downloaded_file.zip`;
   setTextContent('curl-download-snippet', curlDownload);
 
-  // If configuration help is needed, show warning box
-  if (config.configurationHelp && deploymentStatus === 'configuration_required') {
-    showAlert('warn-box', config.configurationHelp);
-  }
+  // 5. Configuration Help Warning Box
+  const helpBoxes = document.querySelectorAll('.config-help-box');
+  helpBoxes.forEach((box) => {
+    if (deploymentStatus === 'configuration_required' && configurationHelp) {
+      box.style.display = 'block';
+      const textEl = box.querySelector('.config-help-text') || box;
+      textEl.textContent = configurationHelp;
+    } else {
+      box.style.display = 'none';
+    }
+  });
 }
 
 function updateStatusPill(status, text) {
@@ -84,13 +92,17 @@ function updateStatusPill(status, text) {
 }
 
 function setTextContent(id, text) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = text;
+  const elements = document.querySelectorAll(`#${id}, .${id}`);
+  elements.forEach((el) => {
+    el.textContent = text;
+  });
 }
 
 function setHref(id, url) {
-  const el = document.getElementById(id);
-  if (el) el.href = url;
+  const elements = document.querySelectorAll(`#${id}, .${id}`);
+  elements.forEach((el) => {
+    el.href = url;
+  });
 }
 
 /**
@@ -138,13 +150,15 @@ function setupEventListeners() {
       const targetId = btn.getAttribute('data-target');
       let textToCopy = '';
       if (targetId) {
-        const targetEl = document.getElementById(targetId);
-        textToCopy = targetEl ? targetEl.textContent.trim() : '';
+        const targetEl = document.getElementById(targetId) || document.querySelector(`.${targetId}`);
+        if (targetEl) {
+          textToCopy = targetEl.textContent.trim();
+        }
       } else if (btn.getAttribute('data-text')) {
         textToCopy = btn.getAttribute('data-text');
       }
 
-      if (textToCopy) {
+      if (textToCopy && textToCopy !== 'Detecting...' && !textToCopy.startsWith('Awaiting')) {
         navigator.clipboard.writeText(textToCopy).then(() => {
           const originalTitle = btn.getAttribute('title') || '';
           btn.setAttribute('title', 'Copied!');

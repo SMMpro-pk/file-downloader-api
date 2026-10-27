@@ -16,13 +16,13 @@ services:
       - key: API_BASE_PATH
         value: /api/v1
       - key: FRONTEND_BASE_URL
-        value: https://smmpro.pk
+        sync: false
       - key: API_KEY_REQUIRED
         value: "true"
       - key: API_KEY
         generateValue: true
       - key: CORS_ORIGINS
-        value: "https://smmpro.pk,http://localhost:3000"
+        value: "*"
       - key: TRUST_PROXY
         value: "true"
       - key: REQUEST_TIMEOUT_MS

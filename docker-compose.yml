@@ -13,7 +13,8 @@ services:
       - HOST=0.0.0.0
       - API_KEY_REQUIRED=true
       - API_KEY=replace_with_a_long_random_secret_at_least_32_chars
-      - CORS_ORIGINS=https://smmpro.pk,http://localhost:3000
+      - CORS_ORIGINS=*
+      - PUBLIC_BASE_URL=
       - TRUST_PROXY=true
       - REQUEST_TIMEOUT_MS=10000
       - EXTRACT_TIMEOUT_MS=15000

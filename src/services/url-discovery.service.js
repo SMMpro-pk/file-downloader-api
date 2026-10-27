@@ -46,8 +46,22 @@ export class UrlDiscoveryService {
       return `https://${domain}`;
     }
 
-    // 6. Local development or testing fallback
+    // 6. Heroku
+    if (process.env.HEROKU_APP_NAME) {
+      return `https://${process.env.HEROKU_APP_NAME.trim()}.herokuapp.com`;
+    }
+
+    // 7. Koyeb
+    if (process.env.KOYEB_PUBLIC_DOMAIN) {
+      const domain = process.env.KOYEB_PUBLIC_DOMAIN.trim().replace(/^https?:\/\//, '');
+      return `https://${domain}`;
+    }
+
+    // 8. Configurable local development fallback
     if (env.NODE_ENV !== 'production') {
+      if (env.LOCAL_BASE_URL) {
+        return env.LOCAL_BASE_URL;
+      }
       return `http://localhost:${env.PORT}`;
     }
 
@@ -85,8 +99,7 @@ export class UrlDiscoveryService {
     return {
       appName: 'SMMpro File Downloader',
       brand: {
-        name: 'SMMpro',
-        website: 'https://smmpro.pk/'
+        name: 'SMMpro'
       },
       deploymentStatus,
       publicBaseUrl,
@@ -99,7 +112,7 @@ export class UrlDiscoveryService {
       apiKeyRequired: env.API_KEY_REQUIRED,
       configurationHelp: publicBaseUrl
         ? null
-        : 'Set the PUBLIC_BASE_URL environment variable to your deployed public domain (e.g. https://your-service.onrender.com) for external client integration.'
+        : 'Public URL not automatically detected. To expose this API to external clients, configure the PUBLIC_BASE_URL environment variable in your hosting provider\'s dashboard (e.g. PUBLIC_BASE_URL=https://your-assigned-domain.com).'
     };
   }
 }

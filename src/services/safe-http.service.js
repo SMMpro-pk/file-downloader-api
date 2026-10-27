@@ -122,7 +122,7 @@ export class SafeHttpService {
       const safeLookup = SafeHttpService.createSafeLookup({ allowLocalTest });
 
       const reqHeaders = {
-        'User-Agent': 'SMMpro-File-Downloader/1.0 (+https://smmpro.pk/)',
+        'User-Agent': 'SMMpro-File-Downloader/1.0',
         'Accept': '*/*',
         ...headers
       };

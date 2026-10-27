@@ -206,13 +206,16 @@ The repository includes pre-configured infrastructure descriptors for one-click 
 The application features an automatic URL-discovery engine (`src/services/url-discovery.service.js`):
 
 1. **Explicit Configuration (`PUBLIC_BASE_URL`)**:
-   If set (e.g. `PUBLIC_BASE_URL=https://api.smmpro.pk`), this URL is always prioritized.
+   If set (e.g. `PUBLIC_BASE_URL=https://api.yourdomain.com`), this URL is always prioritized.
 2. **Provider Documented Hostnames**:
    If `PUBLIC_BASE_URL` is omitted, the engine inspects documented platform runtime variables:
    - **Render**: `RENDER_EXTERNAL_URL`
    - **Railway**: `RAILWAY_PUBLIC_DOMAIN` or `RAILWAY_STATIC_URL`
    - **Fly.io**: `FLY_APP_NAME` (`https://${FLY_APP_NAME}.fly.dev`)
    - **Vercel**: `VERCEL_URL`
+   - **Heroku**: `HEROKU_APP_NAME` (`https://${HEROKU_APP_NAME}.herokuapp.com`)
+   - **Koyeb**: `KOYEB_PUBLIC_DOMAIN`
+   - **Local Development**: `LOCAL_BASE_URL` or `http://localhost:${PORT}`
 3. **Untrusted Header Prevention**:
    The engine **never** derives the public base URL from untrusted client-supplied `Host`, `X-Forwarded-Host`, or `Referer` headers, preventing host-header injection and cache poisoning attacks.
 4. **Configuration Alerting**:

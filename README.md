@@ -9,7 +9,7 @@
 [![Node.js Version](https://img.shields.io/badge/Node.js-22%20LTS-339933?logo=node.js)](https://nodejs.org/)
 [![Express.js](https://img.shields.io/badge/Express-4.21-000000?logo=express)](https://expressjs.com/)
 [![License](https://img.shields.io/badge/License-Proprietary-red)](#)
-[![Tests](https://img.shields.io/badge/Tests-66%20Passing-brightgreen?logo=vitest)](https://vitest.dev/)
+[![Tests](https://img.shields.io/badge/Tests-71%20Passing-brightgreen?logo=vitest)](https://vitest.dev/)
 [![Security](https://img.shields.io/badge/SSRF%20Protection-Hardened-blue)](#security-architecture)
 
 Official Website: [https://smmpro.pk/](https://smmpro.pk/)  
@@ -88,10 +88,10 @@ NODE_ENV=production
 PORT=3000
 PUBLIC_BASE_URL=https://api.yourdomain.com
 API_BASE_PATH=/api/v1
-FRONTEND_BASE_URL=https://smmpro.pk
+FRONTEND_BASE_URL=
 API_KEY_REQUIRED=true
 API_KEY=your_generated_32_character_hex_secret
-CORS_ORIGINS=https://smmpro.pk,https://yourdomain.com
+CORS_ORIGINS=*
 ```
 
 ### 3. Deploy via GitHub-Integrated Hosting Providers
@@ -99,13 +99,13 @@ CORS_ORIGINS=https://smmpro.pk,https://yourdomain.com
 #### Option A: Render.com (One-Click Blueprint)
 1. In [Render Dashboard](https://dashboard.render.com/), click **New +** -> **Blueprint**.
 2. Connect your repository. Render automatically reads [`render.yaml`](render.yaml).
-3. Confirm environment variables (`API_KEY`, `CORS_ORIGINS`).
+3. Confirm environment variables (`API_KEY`).
 4. Click **Apply**. Render builds the service and executes health checks on `/api/v1/health`.
 
 #### Option B: Railway.app
 1. In [Railway](https://railway.app/), click **New Project** -> **Deploy from GitHub repo**.
 2. Select your repository. Railway detects [`Dockerfile`](Dockerfile) and [`railway.json`](railway.json).
-3. Under **Variables**, add `NODE_ENV=production`, `API_KEY_REQUIRED=true`, `API_KEY`, and `CORS_ORIGINS`.
+3. Under **Variables**, add `NODE_ENV=production`, `API_KEY_REQUIRED=true`, and `API_KEY`.
 4. Under **Settings** -> **Networking**, click **Generate Domain**.
 
 #### Option C: Fly.io
@@ -124,7 +124,7 @@ When deployment completes:
 - **Fly.io**: Derived as `https://<fly-app-name>.fly.dev`.
 
 ### 5. Configure `PUBLIC_BASE_URL` When Necessary
-The service auto-detects `RENDER_EXTERNAL_URL`, `RAILWAY_PUBLIC_DOMAIN`, `FLY_APP_NAME`, and `VERCEL_URL`.
+The service auto-detects `RENDER_EXTERNAL_URL`, `RAILWAY_PUBLIC_DOMAIN`, `RAILWAY_STATIC_URL`, `FLY_APP_NAME`, `VERCEL_URL`, `HEROKU_APP_NAME`, and `KOYEB_PUBLIC_DOMAIN`.
 If using a custom domain or reverse proxy (Cloudflare, Nginx, AWS ALB), explicitly set:
 ```bash
 PUBLIC_BASE_URL=https://api.yourdomain.com
@@ -453,7 +453,7 @@ npm run test:coverage
 - **Branches**: > 65%
 - **Functions**: > 82%
 - **Lines**: > 75%
-- **Test Count**: 66 automated tests covering health, readiness, public discovery config, web frontend, same-origin dashboard proxy, platforms, SSRF, DNS rebinding, redirect loops, MIME mismatches, range requests, large files, streaming downloads, extract links, traversal archives, and API key authentication.
+- **Test Count**: 71 automated tests covering health, readiness, public discovery config, web frontend, same-origin dashboard proxy, platforms, SSRF, DNS rebinding, redirect loops, MIME mismatches, range requests, large files, streaming downloads, extract links, traversal archives, and API key authentication.
 
 ---
 

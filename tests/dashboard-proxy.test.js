@@ -17,16 +17,16 @@ describe('Dashboard Same-Origin Proxy & URL Discovery Service', () => {
   });
 
   describe('UrlDiscoveryService Logic', () => {
-    it('constructs correct API base URL when PUBLIC_BASE_URL is set', () => {
+    it('constructs correct API base URL when PUBLIC_BASE_URL is set dynamically to any domain', () => {
       const original = env.PUBLIC_BASE_URL;
-      env.PUBLIC_BASE_URL = 'https://api.smmpro.pk';
+      env.PUBLIC_BASE_URL = 'https://api.custom-customer-domain.example';
 
       const config = UrlDiscoveryService.getPublicConfig();
-      expect(config.publicBaseUrl).toBe('https://api.smmpro.pk');
-      expect(config.apiBaseUrl).toBe('https://api.smmpro.pk/api/v1');
-      expect(config.docsUrl).toBe('https://api.smmpro.pk/api/docs');
-      expect(config.healthUrl).toBe('https://api.smmpro.pk/api/v1/health');
-      expect(config.testPageUrl).toBe('https://api.smmpro.pk/test');
+      expect(config.publicBaseUrl).toBe('https://api.custom-customer-domain.example');
+      expect(config.apiBaseUrl).toBe('https://api.custom-customer-domain.example/api/v1');
+      expect(config.docsUrl).toBe('https://api.custom-customer-domain.example/api/docs');
+      expect(config.healthUrl).toBe('https://api.custom-customer-domain.example/api/v1/health');
+      expect(config.testPageUrl).toBe('https://api.custom-customer-domain.example/test');
 
       env.PUBLIC_BASE_URL = original;
     });
@@ -67,6 +67,54 @@ describe('Dashboard Same-Origin Proxy & URL Discovery Service', () => {
       env.PUBLIC_BASE_URL = originalEnv;
     });
 
+    it('auto-detects Heroku domain from HEROKU_APP_NAME', () => {
+      const originalEnv = env.PUBLIC_BASE_URL;
+      env.PUBLIC_BASE_URL = '';
+      process.env.HEROKU_APP_NAME = 'my-custom-file-api';
+
+      const url = UrlDiscoveryService.discoverPublicBaseUrl();
+      expect(url).toBe('https://my-custom-file-api.herokuapp.com');
+
+      delete process.env.HEROKU_APP_NAME;
+      env.PUBLIC_BASE_URL = originalEnv;
+    });
+
+    it('auto-detects Koyeb domain from KOYEB_PUBLIC_DOMAIN', () => {
+      const originalEnv = env.PUBLIC_BASE_URL;
+      env.PUBLIC_BASE_URL = '';
+      process.env.KOYEB_PUBLIC_DOMAIN = 'my-api-koyeb.koyeb.app';
+
+      const url = UrlDiscoveryService.discoverPublicBaseUrl();
+      expect(url).toBe('https://my-api-koyeb.koyeb.app');
+
+      delete process.env.KOYEB_PUBLIC_DOMAIN;
+      env.PUBLIC_BASE_URL = originalEnv;
+    });
+
+    it('supports configurable local development URL via LOCAL_BASE_URL or dynamic port', () => {
+      const originalNodeEnv = env.NODE_ENV;
+      const originalPublicUrl = env.PUBLIC_BASE_URL;
+      const originalLocalUrl = env.LOCAL_BASE_URL;
+      const originalPort = env.PORT;
+
+      env.NODE_ENV = 'development';
+      env.PUBLIC_BASE_URL = '';
+      env.LOCAL_BASE_URL = 'http://127.0.0.1:8080';
+
+      let url = UrlDiscoveryService.discoverPublicBaseUrl();
+      expect(url).toBe('http://127.0.0.1:8080');
+
+      env.LOCAL_BASE_URL = '';
+      env.PORT = 4500;
+      url = UrlDiscoveryService.discoverPublicBaseUrl();
+      expect(url).toBe('http://localhost:4500');
+
+      env.NODE_ENV = originalNodeEnv;
+      env.PUBLIC_BASE_URL = originalPublicUrl;
+      env.LOCAL_BASE_URL = originalLocalUrl;
+      env.PORT = originalPort;
+    });
+
     it('reports configuration_required when running in production without configured or provider domain', () => {
       const originalNodeEnv = env.NODE_ENV;
       const originalPublicUrl = env.PUBLIC_BASE_URL;
@@ -78,10 +126,44 @@ describe('Dashboard Same-Origin Proxy & URL Discovery Service', () => {
       expect(status).toBe('configuration_required');
 
       const config = UrlDiscoveryService.getPublicConfig();
-      expect(config.configurationHelp).toContain('Set the PUBLIC_BASE_URL');
+      expect(config.configurationHelp).toContain('Public URL not automatically detected');
 
       env.NODE_ENV = originalNodeEnv;
       env.PUBLIC_BASE_URL = originalPublicUrl;
+    });
+  });
+
+  describe('Dashboard UI & Deployment URL Display', () => {
+    it('GET / contains copy buttons and display elements for all 5 key URLs', async () => {
+      const res = await request(app).get('/');
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('display-public-url');
+      expect(res.text).toContain('display-api-url');
+      expect(res.text).toContain('display-health-url');
+      expect(res.text).toContain('display-docs-url');
+      expect(res.text).toContain('display-test-url');
+      expect(res.text).toContain('config-help-box');
+      expect(res.text).toContain('data-target="display-public-url"');
+      expect(res.text).toContain('data-target="display-api-url"');
+      expect(res.text).toContain('data-target="display-health-url"');
+      expect(res.text).toContain('data-target="display-docs-url"');
+      expect(res.text).toContain('data-target="display-test-url"');
+    });
+
+    it('GET /test contains copy buttons and display elements for all 5 key URLs', async () => {
+      const res = await request(app).get('/test');
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('display-public-url');
+      expect(res.text).toContain('display-api-url');
+      expect(res.text).toContain('display-health-url');
+      expect(res.text).toContain('display-docs-url');
+      expect(res.text).toContain('display-test-url');
+      expect(res.text).toContain('config-help-box');
+      expect(res.text).toContain('data-target="display-public-url"');
+      expect(res.text).toContain('data-target="display-api-url"');
+      expect(res.text).toContain('data-target="display-health-url"');
+      expect(res.text).toContain('data-target="display-docs-url"');
+      expect(res.text).toContain('data-target="display-test-url"');
     });
   });
 
