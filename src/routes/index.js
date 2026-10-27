@@ -10,6 +10,7 @@ import filesRoutes from './files.routes.js';
 import extractRoutes from './extract.routes.js';
 import downloadRoutes from './download.routes.js';
 import archiveRoutes from './archive.routes.js';
+import testProxyRoutes from './test-proxy.routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,7 +41,7 @@ router.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec, {
   }
 }));
 
-// System routes under /api/v1 (health, version, platforms)
+// System routes under /api/v1 (health, ready, config/public, version, platforms)
 router.use('/api/v1', healthRoutes);
 
 // Protected functional routes under /api/v1 (apply apiKeyMiddleware)
@@ -48,5 +49,8 @@ router.use('/api/v1/files', apiKeyMiddleware, filesRoutes);
 router.use('/api/v1', apiKeyMiddleware, extractRoutes);
 router.use('/api/v1', apiKeyMiddleware, downloadRoutes);
 router.use('/api/v1/archive', apiKeyMiddleware, archiveRoutes);
+
+// Same-origin testing dashboard proxy routes (for /test and homepage demo without exposing API keys)
+router.use('/api/internal', testProxyRoutes);
 
 export default router;

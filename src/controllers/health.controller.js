@@ -2,15 +2,31 @@ import { env } from '../config/env.js';
 import { LIMITS } from '../config/limits.js';
 import { SUPPORTED_FORMATS, FILE_CATEGORIES } from '../config/registry.js';
 import { formatBytes } from '../utils/format-size.js';
+import { UrlDiscoveryService } from '../services/url-discovery.service.js';
 
 export function getHealth(req, res) {
   return res.jsonEnvelope({
     status: 'healthy',
-    timestamp: new Date().toISOString(),
-    uptimeSeconds: Math.floor(process.uptime()),
+    application: 'SMMpro File Downloader',
     brand: 'SMMpro',
-    service: 'SMMpro File Downloader API'
+    service: 'SMMpro File Downloader API',
+    timestamp: new Date().toISOString(),
+    uptimeSeconds: Math.floor(process.uptime())
   });
+}
+
+export function getReady(req, res) {
+  return res.jsonEnvelope({
+    ready: true,
+    application: 'SMMpro File Downloader',
+    timestamp: new Date().toISOString(),
+    uptimeSeconds: Math.floor(process.uptime())
+  });
+}
+
+export function getPublicConfig(req, res) {
+  const config = UrlDiscoveryService.getPublicConfig();
+  return res.jsonEnvelope(config);
 }
 
 export function getVersion(req, res) {
@@ -59,6 +75,8 @@ export function getPlatforms(req, res) {
 
 export default {
   getHealth,
+  getReady,
+  getPublicConfig,
   getVersion,
   getPlatforms
 };

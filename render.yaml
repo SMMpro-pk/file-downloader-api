@@ -1,0 +1,47 @@
+services:
+  - type: web
+    name: smmpro-file-downloader-api
+    runtime: node
+    plan: starter
+    buildCommand: npm ci --omit=dev
+    startCommand: node src/server.js
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: API_BASE_PATH
+        value: /api/v1
+      - key: FRONTEND_BASE_URL
+        value: https://smmpro.pk
+      - key: API_KEY_REQUIRED
+        value: "true"
+      - key: API_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: "https://smmpro.pk,http://localhost:3000"
+      - key: TRUST_PROXY
+        value: "true"
+      - key: REQUEST_TIMEOUT_MS
+        value: "10000"
+      - key: EXTRACT_TIMEOUT_MS
+        value: "15000"
+      - key: MAX_REDIRECTS
+        value: "5"
+      - key: MAX_EXTRACTED_LINKS
+        value: "50"
+      - key: MAX_FILE_SIZE_BYTES
+        value: "1073741824"
+      - key: MAX_CONCURRENT_DOWNLOADS
+        value: "5"
+      - key: DETECTION_RATE_LIMIT
+        value: "30"
+      - key: DOWNLOAD_RATE_LIMIT
+        value: "10"
+      - key: LOG_LEVEL
+        value: "info"
+      - key: ENABLE_ARCHIVE_INSPECTION
+        value: "false"

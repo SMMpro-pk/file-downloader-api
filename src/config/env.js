@@ -7,6 +7,44 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
   HOST: z.string().default('0.0.0.0'),
+  PUBLIC_BASE_URL: z
+    .string()
+    .optional()
+    .default('')
+    .transform((val) => {
+      if (!val || !val.trim()) return '';
+      const trimmed = val.trim();
+      try {
+        const u = new URL(trimmed);
+        if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+          throw new Error('PUBLIC_BASE_URL must use http:// or https://');
+        }
+        return u.origin;
+      } catch (err) {
+        throw new Error(`Invalid PUBLIC_BASE_URL: ${err.message}`);
+      }
+    }),
+  API_BASE_PATH: z
+    .string()
+    .default('/api/v1')
+    .transform((val) => {
+      let trimmed = (val || '/api/v1').trim();
+      if (!trimmed.startsWith('/')) trimmed = `/${trimmed}`;
+      return trimmed.replace(/\/+$/, '');
+    }),
+  FRONTEND_BASE_URL: z
+    .string()
+    .optional()
+    .default('')
+    .transform((val) => {
+      if (!val || !val.trim()) return '';
+      try {
+        const u = new URL(val.trim());
+        return u.origin;
+      } catch {
+        return '';
+      }
+    }),
   API_KEY_REQUIRED: z
     .string()
     .transform((val) => val === 'true' || val === '1')

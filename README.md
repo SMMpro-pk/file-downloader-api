@@ -9,7 +9,7 @@
 [![Node.js Version](https://img.shields.io/badge/Node.js-22%20LTS-339933?logo=node.js)](https://nodejs.org/)
 [![Express.js](https://img.shields.io/badge/Express-4.21-000000?logo=express)](https://expressjs.com/)
 [![License](https://img.shields.io/badge/License-Proprietary-red)](#)
-[![Tests](https://img.shields.io/badge/Tests-53%20Passing-brightgreen?logo=vitest)](https://vitest.dev/)
+[![Tests](https://img.shields.io/badge/Tests-66%20Passing-brightgreen?logo=vitest)](https://vitest.dev/)
 [![Security](https://img.shields.io/badge/SSRF%20Protection-Hardened-blue)](#security-architecture)
 
 Official Website: [https://smmpro.pk/](https://smmpro.pk/)  
@@ -29,11 +29,15 @@ Built with **Node.js 22 LTS** in pure **ES Modules**, this service provides a ro
 
 ## 2. Core Capabilities & Architecture
 
+- **Public Homepage (`GET /`) & Live Testing Dashboard (`GET /test`)**: Modern SaaS interface branded with royal purple (`#6552E6`), lavender (`#E9E5FF`), and navy styling. Allows real-time URL detection, file metadata inspection, and streaming file downloads directly through the deployed backend.
+- **Automatic Live URL Discovery (`GET /api/v1/config/public`)**: Auto-discovers public origin from provider environment variables (Render, Railway, Fly.io, Vercel) or explicit `PUBLIC_BASE_URL`. Clearly displays and provides copy buttons for the API base URL used by frontend applications.
+- **Same-Origin Backend-for-Frontend Proxy (`/api/internal/*`)**: Built-in test dashboard proxy that enforces same-origin validation, allowing visitors to test file operations without exposing permanent server-side API keys in client JavaScript.
 - **Direct URL File Detection**: Inspects remote URLs without downloading entire files. Employs bounded Range requests (initial 16 KB) and HEAD fallback to read binary signatures.
 - **Binary Format Verification (`file-type`)**: Detects actual file format from binary headers, avoiding deceptive or spoofed file extensions.
 - **Comprehensive File Type Registry**: Supports archives (ZIP, RAR, 7Z, TAR, GZ, BZ2, XZ), documents (PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, CSV, EPUB), images (JPG, PNG, WEBP, GIF, SVG, TIFF, BMP, AVIF), audio (MP3, WAV, FLAC, AAC, M4A, OGG, OPUS), video (MP4, WEBM, MOV, MKV, AVI, MPEG), and software packages (APK, EXE, MSI, DMG, ISO, DEB, RPM).
 - **Webpage Downloadable-Link Extractor**: Parses server-rendered HTML using `cheerio`, discovers candidate files from `<a>`, `<area>`, and `[download]` attributes, resolves relative URLs, and filters out private/prohibited hosts.
 - **Secure Streaming Proxy**: Streams files directly using Node.js backpressure pipelines with sanitized `Content-Disposition: attachment`, real-time size limit enforcement, Range forwarding, and client disconnect abort propagation.
+- **Container Health & Readiness (`/api/v1/health`, `/api/v1/ready`)**: Lightweight health checks and readiness monitoring that distinguish process startup from public domain availability.
 - **Zero-Storage Footprint**: Files are proxied in-flight with zero permanent disk footprint.
 - **Optional Archive Inspector**: Non-extracting ZIP entry inspection using `yauzl` with ZIP bomb expansion defense and path traversal detection.
 - **Hardened SSRF & DNS Rebinding Defenses**: Socket-level IP pinning, loopback/private/link-local/metadata CIDR blocklist, and redirect re-validation.
@@ -62,7 +66,155 @@ Built with **Node.js 22 LTS** in pure **ES Modules**, this service provides a ro
 
 ---
 
-## 4. Quickstart Guide
+## 4. Easy Deployment (One-Click & GitHub-Integrated)
+
+Deploy the SMMpro File Downloader API in minutes with zero manual server configuration. The application binds to `0.0.0.0:${PORT}`, supports Docker containerization, automatically discovers its public origin, and includes an interactive Live Testing Dashboard at `/test`.
+
+### 1. Create or Clone the Repository
+Fork or push this repository to your GitHub account:
+```bash
+git clone https://github.com/SMMpro-pk/file-downloader-api.git
+cd file-downloader-api
+```
+
+### 2. Configure Environment Variables
+Copy `.env.example` to review supported options:
+```bash
+cp .env.example .env
+```
+Key production variables:
+```ini
+NODE_ENV=production
+PORT=3000
+PUBLIC_BASE_URL=https://api.yourdomain.com
+API_BASE_PATH=/api/v1
+FRONTEND_BASE_URL=https://smmpro.pk
+API_KEY_REQUIRED=true
+API_KEY=your_generated_32_character_hex_secret
+CORS_ORIGINS=https://smmpro.pk,https://yourdomain.com
+```
+
+### 3. Deploy via GitHub-Integrated Hosting Providers
+
+#### Option A: Render.com (One-Click Blueprint)
+1. In [Render Dashboard](https://dashboard.render.com/), click **New +** -> **Blueprint**.
+2. Connect your repository. Render automatically reads [`render.yaml`](render.yaml).
+3. Confirm environment variables (`API_KEY`, `CORS_ORIGINS`).
+4. Click **Apply**. Render builds the service and executes health checks on `/api/v1/health`.
+
+#### Option B: Railway.app
+1. In [Railway](https://railway.app/), click **New Project** -> **Deploy from GitHub repo**.
+2. Select your repository. Railway detects [`Dockerfile`](Dockerfile) and [`railway.json`](railway.json).
+3. Under **Variables**, add `NODE_ENV=production`, `API_KEY_REQUIRED=true`, `API_KEY`, and `CORS_ORIGINS`.
+4. Under **Settings** -> **Networking**, click **Generate Domain**.
+
+#### Option C: Fly.io
+1. Authenticate with `flyctl auth login`.
+2. Launch using [`fly.toml`](fly.toml):
+   ```bash
+   fly launch --copy-config
+   fly secrets set API_KEY="your_secret_key" API_KEY_REQUIRED="true"
+   fly deploy
+   ```
+
+### 4. Find Your Public Deployment URL
+When deployment completes:
+- **Render**: Listed at the top of your service dashboard (e.g., `https://smmpro-api.onrender.com`).
+- **Railway**: Listed under **Networking** (e.g., `https://smmpro-api.up.railway.app`).
+- **Fly.io**: Derived as `https://<fly-app-name>.fly.dev`.
+
+### 5. Configure `PUBLIC_BASE_URL` When Necessary
+The service auto-detects `RENDER_EXTERNAL_URL`, `RAILWAY_PUBLIC_DOMAIN`, `FLY_APP_NAME`, and `VERCEL_URL`.
+If using a custom domain or reverse proxy (Cloudflare, Nginx, AWS ALB), explicitly set:
+```bash
+PUBLIC_BASE_URL=https://api.yourdomain.com
+```
+
+### 6. Obtain the Live API Base URL
+Query the public configuration endpoint:
+```bash
+curl -sS https://YOUR_PUBLIC_DOMAIN/api/v1/config/public
+```
+The response returns:
+```json
+{
+  "success": true,
+  "data": {
+    "appName": "SMMpro File Downloader",
+    "publicBaseUrl": "https://YOUR_PUBLIC_DOMAIN",
+    "apiBaseUrl": "https://YOUR_PUBLIC_DOMAIN/api/v1",
+    "docsUrl": "https://YOUR_PUBLIC_DOMAIN/api/docs",
+    "healthUrl": "https://YOUR_PUBLIC_DOMAIN/api/v1/health",
+    "testPageUrl": "https://YOUR_PUBLIC_DOMAIN/test",
+    "apiKeyRequired": true
+  }
+}
+```
+Copy `apiBaseUrl` directly into your frontend application!
+
+### 7. Open the Testing Dashboard
+Open `https://YOUR_PUBLIC_DOMAIN/test` in any browser:
+- Test real URL detection and format verification.
+- Inspect true binary magic bytes vs declared MIME types.
+- Safely test streaming file downloads through the backend.
+- Does **not** expose your server-side `API_KEY` in browser JavaScript (protected via same-origin backend proxy).
+
+### 8. Test Detection Using curl
+```bash
+curl -i https://YOUR_PUBLIC_DOMAIN/api/v1/health
+```
+
+```bash
+curl -sS https://YOUR_PUBLIC_DOMAIN/api/v1/config/public
+```
+
+```bash
+curl -X POST "https://YOUR_PUBLIC_DOMAIN/api/v1/files/info" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -d '{"url":"https://example.com/files/sample.zip"}'
+```
+
+### 9. Test Downloads Using curl
+```bash
+curl -fL -X POST \
+  "https://YOUR_PUBLIC_DOMAIN/api/v1/download" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -d '{"url":"https://example.com/files/sample.zip","mode":"stream"}' \
+  -o sample.zip
+```
+
+### 10. Diagnose Failed Health Checks
+If health checks fail on deployment:
+1. Verify the process is listening on `0.0.0.0` (not `127.0.0.1` only).
+2. Check provider logs for startup validation errors (e.g., Zod schema rejection on invalid environment variables).
+3. Query the readiness endpoint locally or via container exec:
+   ```bash
+   curl -i http://127.0.0.1:3000/api/v1/ready
+   ```
+4. Verify port binding: ensure the application reads `process.env.PORT` assigned by the hosting provider.
+
+### 11. Configure Custom Domain & HTTPS
+1. In your DNS provider (e.g. Cloudflare), create a `CNAME` pointing `api.yourdomain.com` to your provider host.
+2. In your hosting dashboard, add the custom domain and verify SSL provisioning.
+3. Update `PUBLIC_BASE_URL=https://api.yourdomain.com` and `CORS_ORIGINS`.
+
+### 12. Rotate API Keys
+1. Generate a new secret: `openssl rand -hex 32`.
+2. Update `API_KEY` in your hosting dashboard variables.
+3. Trigger a zero-downtime rolling reload.
+4. Update frontend client configurations to the new key.
+
+### 13. Redeploy After Pushing Changes
+Whenever changes are pushed to `main` (or configured deployment branch):
+- Render, Railway, and Fly.io automatically trigger builds.
+- Docker containers run health checks prior to cutting over traffic.
+- Active streaming downloads are allowed up to 15 seconds to drain before graceful shutdown.
+
+---
+
+## 5. Local Quickstart Guide
 
 ### Prerequisites
 - Node.js 22 LTS or Node.js 20 LTS (`node -v`)
@@ -99,7 +251,7 @@ Built with **Node.js 22 LTS** in pure **ES Modules**, this service provides a ro
 
 ---
 
-## 5. Configuration (`.env`)
+## 6. Configuration (`.env`)
 
 All settings are validated with Zod at startup. Invalid configurations trigger a clean, non-sensitive fatal startup error.
 
@@ -136,7 +288,7 @@ ENABLE_ARCHIVE_INSPECTION=false
 
 ---
 
-## 6. Complete curl API Testing Guide
+## 7. Complete curl API Testing Guide
 
 ### A. Health & System Checks
 
@@ -258,7 +410,7 @@ curl -X POST "http://localhost:3000/api/v1/archive/inspect" \
 
 ---
 
-## 7. Security Architecture
+## 8. Security Architecture
 
 Detailed documentation is available in [`docs/SECURITY.md`](docs/SECURITY.md).
 
@@ -273,7 +425,7 @@ Detailed documentation is available in [`docs/SECURITY.md`](docs/SECURITY.md).
 
 ---
 
-## 8. Format Detection Classification
+## 9. Format Detection Classification
 
 The detection engine classifies format certainty into three explicit statuses:
 - **`verified`**: The file was conclusively verified by examining binary magic bytes (e.g., PNG `89 50 4E 47`, ZIP `50 4B 03 04`, PDF `%PDF-`).
@@ -282,7 +434,7 @@ The detection engine classifies format certainty into three explicit statuses:
 
 ---
 
-## 9. Automated Testing & Verification
+## 10. Automated Testing & Verification
 
 The project includes an end-to-end automated test suite utilizing **Vitest** and **Supertest** with a local mock HTTP server that simulates all test fixtures without depending on third-party websites.
 
@@ -297,15 +449,15 @@ npm run test:coverage
 ```
 
 ### Coverage Highlights:
-- **Statements**: > 74%
+- **Statements**: > 73%
 - **Branches**: > 65%
-- **Functions**: > 80%
+- **Functions**: > 82%
 - **Lines**: > 75%
-- **Test Count**: 53 automated tests covering health, version, platforms, SSRF, DNS rebinding, redirect loops, MIME mismatches, range requests, large files, streaming downloads, extract links, traversal archives, and API key authentication.
+- **Test Count**: 66 automated tests covering health, readiness, public discovery config, web frontend, same-origin dashboard proxy, platforms, SSRF, DNS rebinding, redirect loops, MIME mismatches, range requests, large files, streaming downloads, extract links, traversal archives, and API key authentication.
 
 ---
 
-## 10. Docker & Production Deployment
+## 11. Docker & Production Deployment
 
 Full deployment instructions are available in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
@@ -322,7 +474,7 @@ pm2 start src/server.js --name "smmpro-downloader" -i max
 
 ---
 
-## 11. Production Checklist
+## 12. Production Checklist
 
 - [x] Configure a 32+ character random `API_KEY` in `.env`.
 - [x] Set `API_KEY_REQUIRED=true` in production.
@@ -334,7 +486,7 @@ pm2 start src/server.js --name "smmpro-downloader" -i max
 
 ---
 
-## 12. Support & Brand Attribution
+## 13. Support & Brand Attribution
 
 **SMMpro**  
 Website: [https://smmpro.pk/](https://smmpro.pk/)  

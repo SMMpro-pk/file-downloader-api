@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live File Testing Dashboard — SMMpro File Downloader API</title>
+  <meta name="description" content="Live testing dashboard for SMMpro File Downloader API. Test file format detection, metadata extraction, and streaming downloads using your deployed backend.">
+  <meta name="theme-color" content="#6552E6">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236552E6'><path d='M12 2v13m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2'/></svg>">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header class="navbar">
+    <div class="container navbar-content">
+      <a href="/" class="brand">
+        <span class="brand-badge">SMMpro</span>
+        <span>File Downloader</span>
+      </a>
+      <nav>
+        <ul class="nav-links">
+          <li><span class="status-pill status-live"><span class="status-dot"></span><span class="status-text">Operational</span></span></li>
+          <li><a href="/" class="nav-link">Home</a></li>
+          <li><a href="/api/docs" id="link-docs" class="nav-link">API Docs</a></li>
+          <li><a href="https://smmpro.pk/" target="_blank" rel="noopener noreferrer" class="nav-link">SMMpro Website</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container" style="padding-top: 2.5rem; padding-bottom: 4rem;">
+    <!-- Page Header -->
+    <div style="margin-bottom: 2rem;">
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h1 style="font-size: 2.25rem; color: var(--navy); margin-bottom: 0.35rem;">Live Testing Dashboard</h1>
+          <p style="color: var(--gray-600); font-size: 1.05rem;">
+            Test file detection, metadata extraction, and real streaming downloads against your deployed SMMpro backend.
+          </p>
+        </div>
+        <div>
+          <a href="/api/docs" class="btn btn-secondary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            Interactive Swagger Docs
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live API Status Bar -->
+    <div style="background-color: var(--primary-subtle); border: 1px solid var(--primary-light); border-radius: var(--radius-md); padding: 1rem 1.25rem; margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <span class="status-pill status-live"><span class="status-dot"></span><span class="status-text">Connected</span></span>
+        <span style="font-size: 0.9rem; color: var(--navy); font-weight: 500;">
+          API Base URL: <strong id="display-api-url" style="font-family: var(--font-mono); color: var(--primary);">/api/v1</strong>
+        </span>
+      </div>
+      <div style="display: flex; gap: 0.5rem;">
+        <button class="btn btn-sm btn-secondary btn-copy" data-target="display-api-url">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy Base URL
+        </button>
+      </div>
+    </div>
+
+    <!-- Testing Interface Card -->
+    <div class="card" style="margin-bottom: 2.5rem;">
+      <h2 style="font-size: 1.35rem; margin-bottom: 1rem; color: var(--navy);">Submit a Remote File URL</h2>
+
+      <div class="input-group" style="margin-bottom: 1.25rem;">
+        <input type="url" id="target-url" class="input-field" placeholder="https://example.com/files/archive.zip or image.png" spellcheck="false" autocomplete="off">
+        <button id="btn-detect" class="btn btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Detect Format
+        </button>
+        <button id="btn-info" class="btn btn-secondary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          Get Metadata
+        </button>
+        <button id="btn-clear" class="btn btn-secondary">Clear</button>
+      </div>
+
+      <!-- Quick Samples -->
+      <div class="sample-urls" style="margin-bottom: 1.5rem;">
+        <span style="color: var(--gray-500); font-weight: 500;">Preloaded Fixtures:</span>
+        <button class="sample-url-btn" data-url="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe">JPEG Photo</button>
+        <button class="sample-url-btn" data-url="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf">W3C PDF Document</button>
+        <button class="sample-url-btn" data-url="https://speed.hetzner.de/100MB.bin">100 MB Binary Stream</button>
+      </div>
+
+      <!-- Alert Banners -->
+      <div id="error-box" class="alert alert-danger"></div>
+      <div id="warn-box" class="alert alert-warning"></div>
+
+      <!-- Streaming Download Progress -->
+      <div id="progress-container" class="progress-container">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 600; color: var(--navy);">
+          <span>Downloading Stream...</span>
+          <span id="progress-text">Connecting...</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div id="progress-bar-fill" class="progress-bar-fill"></div>
+        </div>
+      </div>
+
+      <!-- Detailed Results Section -->
+      <div id="results-card" class="results-card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; border-bottom: 1px solid var(--gray-200); padding-bottom: 1rem;">
+          <h3 style="font-size: 1.25rem; color: var(--navy); display: flex; align-items: center; gap: 0.5rem;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            File Inspection Results
+          </h3>
+          <div style="display: flex; gap: 0.75rem;">
+            <button id="btn-download" class="btn btn-success" disabled>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download Stream
+            </button>
+          </div>
+        </div>
+
+        <div class="meta-grid">
+          <div class="meta-box">
+            <div class="meta-box-label">Filename</div>
+            <div class="meta-box-val" style="display: flex; align-items: center; justify-content: space-between;">
+              <span id="res-filename">-</span>
+              <button class="btn-copy" data-target="res-filename" title="Copy Filename">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="meta-box">
+            <div class="meta-box-label">Detected Format</div>
+            <div id="res-format" class="meta-box-val">-</div>
+          </div>
+
+          <div class="meta-box">
+            <div class="meta-box-label">MIME Type</div>
+            <div class="meta-box-val" style="display: flex; align-items: center; justify-content: space-between;">
+              <span id="res-mimetype">-</span>
+              <button class="btn-copy" data-target="res-mimetype" title="Copy MIME">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="meta-box">
+            <div class="meta-box-label">File Size</div>
+            <div id="res-size" class="meta-box-val">-</div>
+          </div>
+
+          <div class="meta-box">
+            <div class="meta-box-label">Format Classification</div>
+            <div style="margin-top: 0.25rem;"><span id="res-status" class="tag status-live">-</span></div>
+          </div>
+
+          <div class="meta-box">
+            <div class="meta-box-label">HTTP Byte-Range Requests</div>
+            <div id="res-ranges" class="meta-box-val" style="font-size: 0.9rem;">-</div>
+          </div>
+        </div>
+
+        <div id="warnings-box" class="alert alert-warning" style="margin-bottom: 1.5rem;"></div>
+
+        <!-- Raw JSON Response Accordion -->
+        <details style="background-color: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--radius-md); padding: 1rem;">
+          <summary style="font-weight: 600; color: var(--navy); cursor: pointer; display: flex; align-items: center; justify-content: space-between;">
+            <span>View Raw API Response JSON</span>
+            <button class="btn-copy" data-target="res-raw-json" title="Copy Raw JSON" onclick="event.stopPropagation();">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+          </summary>
+          <pre id="res-raw-json" style="background-color: var(--navy-dark); color: #E2E8F0; padding: 1rem; border-radius: var(--radius-sm); margin-top: 0.75rem; font-family: var(--font-mono); font-size: 0.85rem; overflow-x: auto;"></pre>
+        </details>
+      </div>
+    </div>
+
+    <!-- Deployment Configuration Card -->
+    <div class="deployment-banner" style="margin: 0;">
+      <div class="deployment-header">
+        <h2 class="deployment-title">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+          Deployed Service Information
+        </h2>
+        <span class="status-pill status-live">
+          <span class="status-dot"></span>
+          <span class="status-text">Production Ready</span>
+        </span>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-label">Application</div>
+          <div class="info-value" id="display-app-name">SMMpro File Downloader</div>
+        </div>
+
+        <div class="info-item">
+          <div class="info-label">API Base URL</div>
+          <div class="info-value-wrap">
+            <span class="info-value" id="display-api-url">/api/v1</span>
+            <button class="btn-copy" data-target="display-api-url" title="Copy API Base URL">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="info-item">
+          <div class="info-label">Public Domain Origin</div>
+          <div class="info-value-wrap">
+            <span class="info-value" id="display-public-url">Detecting...</span>
+            <button class="btn-copy" data-target="display-public-url" title="Copy Public URL">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="info-item">
+          <div class="info-label">Health Endpoint</div>
+          <div class="info-value-wrap">
+            <a href="/api/v1/health" id="link-health" target="_blank" class="info-value" style="text-decoration: underline;">/api/v1/health</a>
+          </div>
+        </div>
+
+        <div class="info-item">
+          <div class="info-label">API Documentation</div>
+          <div class="info-value-wrap">
+            <a href="/api/docs" id="link-docs" class="info-value" style="text-decoration: underline;">/api/docs</a>
+          </div>
+        </div>
+
+        <div class="info-item">
+          <div class="info-label">Authentication Mode</div>
+          <div class="info-value" id="display-auth-status">Checking...</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-content">
+      <div>
+        <div style="font-weight: 700; color: var(--white); font-size: 1.1rem; margin-bottom: 0.25rem;">SMMpro File Downloader API</div>
+        <div>Developed by <a href="https://smmpro.pk/" target="_blank" rel="noopener noreferrer" style="color: var(--primary-light);">SMMpro</a>. All rights reserved © 2026.</div>
+      </div>
+      <div style="display: flex; gap: 1.5rem;">
+        <a href="/" style="color: var(--gray-400);">Home</a>
+        <a href="/api/docs" style="color: var(--gray-400);">API Documentation</a>
+        <a href="/api/v1/health" style="color: var(--gray-400);">System Health</a>
+        <a href="https://smmpro.pk/" target="_blank" rel="noopener noreferrer" style="color: var(--gray-400);">Official Website</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>

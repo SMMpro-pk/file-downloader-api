@@ -111,7 +111,65 @@ curl -i http://localhost:3000/api/v1/health
 
 ---
 
-#### 2. `GET /api/v1/version`
+#### 2. `GET /api/v1/ready`
+Readiness endpoint reporting whether the application process and its listeners are fully initialized and capable of accepting traffic. Used by container orchestrators (Kubernetes, Docker Swarm, Fly.io, Railway) and load balancers.
+
+**curl:**
+```bash
+curl -i http://localhost:3000/api/v1/ready
+```
+
+**Response Example:**
+```json
+{
+  "success": true,
+  "data": {
+    "status": "ready",
+    "application": "SMMpro File Downloader",
+    "timestamp": "2026-10-27T11:30:00.000Z",
+    "uptimeSeconds": 360
+  },
+  "error": null,
+  "requestId": "req_8a91f4..."
+}
+```
+
+---
+
+#### 3. `GET /api/v1/config/public`
+Returns live public discovery configuration, base URLs for frontend integration, interactive Swagger documentation URL, and API key requirement status. Does **NOT** expose secret keys or internal infrastructure credentials.
+
+**curl:**
+```bash
+curl -sS http://localhost:3000/api/v1/config/public
+```
+
+**Response Example:**
+```json
+{
+  "success": true,
+  "data": {
+    "appName": "SMMpro File Downloader",
+    "brand": "SMMpro",
+    "website": "https://smmpro.pk/",
+    "publicBaseUrl": "https://downloader.smmpro.pk",
+    "apiBaseUrl": "https://downloader.smmpro.pk/api/v1",
+    "docsUrl": "https://downloader.smmpro.pk/api/docs",
+    "healthUrl": "https://downloader.smmpro.pk/api/v1/health",
+    "testPageUrl": "https://downloader.smmpro.pk/test",
+    "deploymentStatus": "live",
+    "apiKeyRequired": true,
+    "maxFileSizeBytes": 1073741824,
+    "maxFileSizeHuman": "1 GB"
+  },
+  "error": null,
+  "requestId": "req_8a91f4..."
+}
+```
+
+---
+
+#### 4. `GET /api/v1/version`
 Returns API version, Node.js version, and environment.
 
 **curl:**
@@ -121,7 +179,7 @@ curl -i http://localhost:3000/api/v1/version
 
 ---
 
-#### 3. `GET /api/v1/platforms`
+#### 5. `GET /api/v1/platforms`
 Returns supported file categories, detected formats, configured size limits, and feature flags.
 
 **curl:**
@@ -131,7 +189,17 @@ curl -i http://localhost:3000/api/v1/platforms
 
 ---
 
-### B. File Detection & Metadata Endpoints
+### B. Public Web Pages & Testing Dashboard
+
+#### 6. `GET /`
+Polished modern SaaS homepage branded as **SMMpro File Downloader**. Features direct file inspection, live deployment status banner, supported formats grid, features showcase, and copyable integration curl commands.
+
+#### 7. `GET /test`
+Interactive Live Testing Dashboard. Allows users and developers to test URL detection, retrieve file metadata, inspect binary format verification, and trigger safe streaming file downloads through the actual backend API without exposing the server-side API key.
+
+---
+
+### C. File Detection & Metadata Endpoints
 
 #### 4. `POST /api/v1/files/detect`
 Detects file format and availability from direct file URL without downloading the full file.

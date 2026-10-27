@@ -43,6 +43,20 @@ export function errorHandler(err, req, res, next) { // eslint-disable-line no-un
     });
   }
 
+  // Handle CORS errors
+  if (err.message && err.message.includes('CORS origin') && err.message.includes('is not permitted')) {
+    return res.status(403).json({
+      success: false,
+      data: null,
+      error: {
+        code: 'FORBIDDEN_ORIGIN',
+        message: err.message,
+        details: null
+      },
+      requestId
+    });
+  }
+
   // Application errors (AppError)
   if (err instanceof AppError) {
     // Only log warnings for 4xx client errors, errors for 5xx

@@ -157,7 +157,132 @@ sudo -u smmpro pm2 save
 
 ---
 
-## 4. Nginx Reverse Proxy & SSL Termination
+## 4. One-Click GitHub-Integrated Cloud Deployments
+
+The repository includes pre-configured infrastructure descriptors for one-click deployment across major cloud providers directly connected to your GitHub repository.
+
+### Option A: Render.com (Blueprints)
+1. Fork or push `SMMpro-pk/file-downloader-api` to your GitHub account.
+2. In the [Render Dashboard](https://dashboard.render.com/), click **New +** -> **Blueprint**.
+3. Connect your repository. Render reads [`render.yaml`](../render.yaml) automatically.
+4. Set or confirm the environment variables:
+   - `PUBLIC_BASE_URL`: (Optional) Render automatically exposes `RENDER_EXTERNAL_URL` which the application auto-discovers!
+   - `API_KEY`: Click "Generate" or provide your secret 32+ character key.
+   - `CORS_ORIGINS`: Add your frontend domain(s) (e.g. `https://smmpro.pk`).
+5. Click **Apply**.
+6. The app builds via Docker / Node, binds to `0.0.0.0:${PORT}`, and executes `/api/v1/health` for verification.
+
+### Option B: Railway.app
+1. Navigate to [Railway](https://railway.app/) and click **New Project** -> **Deploy from GitHub repo**.
+2. Select your repository. Railway detects the [`Dockerfile`](../Dockerfile) and [`railway.json`](../railway.json).
+3. In **Variables**, add:
+   - `NODE_ENV=production`
+   - `API_KEY_REQUIRED=true`
+   - `API_KEY=your_secure_random_key_here`
+   - `CORS_ORIGINS=https://smmpro.pk`
+4. Under **Settings** -> **Networking**, click **Generate Domain**. Railway automatically provides `RAILWAY_PUBLIC_DOMAIN` which the app auto-discovers!
+5. Deployment will automatically initiate and verify readiness on `/api/v1/health`.
+
+### Option C: Fly.io
+1. Install flyctl: `curl -L https://fly.io/install.sh | sh`
+2. Launch the app using the included [`fly.toml`](../fly.toml):
+   ```bash
+   fly launch --copy-config
+   ```
+3. Set production secrets securely:
+   ```bash
+   fly secrets set API_KEY="your_secure_32_character_hex_secret" API_KEY_REQUIRED="true"
+   ```
+4. Deploy the machine:
+   ```bash
+   fly deploy
+   ```
+5. Fly automatically provides `FLY_APP_NAME`, which the URL discovery service uses to derive `https://${FLY_APP_NAME}.fly.dev`.
+
+---
+
+## 5. Automatic Live URL Discovery & Public Base URL Configuration
+
+The application features an automatic URL-discovery engine (`src/services/url-discovery.service.js`):
+
+1. **Explicit Configuration (`PUBLIC_BASE_URL`)**:
+   If set (e.g. `PUBLIC_BASE_URL=https://api.smmpro.pk`), this URL is always prioritized.
+2. **Provider Documented Hostnames**:
+   If `PUBLIC_BASE_URL` is omitted, the engine inspects documented platform runtime variables:
+   - **Render**: `RENDER_EXTERNAL_URL`
+   - **Railway**: `RAILWAY_PUBLIC_DOMAIN` or `RAILWAY_STATIC_URL`
+   - **Fly.io**: `FLY_APP_NAME` (`https://${FLY_APP_NAME}.fly.dev`)
+   - **Vercel**: `VERCEL_URL`
+3. **Untrusted Header Prevention**:
+   The engine **never** derives the public base URL from untrusted client-supplied `Host`, `X-Forwarded-Host`, or `Referer` headers, preventing host-header injection and cache poisoning attacks.
+4. **Configuration Alerting**:
+   If deployed in production without an explicit or provider-supplied public URL, the deployment status enters `configuration_required`, and `/api/v1/config/public` explicitly instructs the administrator on how to configure `PUBLIC_BASE_URL`.
+
+---
+
+## 6. Deployment Verification Procedure
+
+Never mark or report a deployment as live until verified through this sequence:
+
+1. **Process & Socket Verification**:
+   ```bash
+   curl -i http://localhost:3000/api/v1/health
+   # Must return HTTP 200 with {"status":"healthy"}
+   ```
+
+2. **Readiness Verification**:
+   ```bash
+   curl -i http://localhost:3000/api/v1/ready
+   # Must return HTTP 200 with {"status":"ready"}
+   ```
+
+3. **Public URL Discovery Verification**:
+   ```bash
+   curl -sS http://localhost:3000/api/v1/config/public
+   # Check "publicBaseUrl" and "deploymentStatus"
+   ```
+
+4. **Web Frontend & Dashboard Verification**:
+   Open in your browser:
+   - Root homepage: `https://YOUR_DOMAIN/`
+   - Testing dashboard: `https://YOUR_DOMAIN/test`
+   - Swagger documentation: `https://YOUR_DOMAIN/api/docs`
+
+5. **Functional Detection & Streaming Download Test**:
+   ```bash
+   # Test file detection
+   curl -sS -X POST "https://YOUR_DOMAIN/api/v1/files/info" \
+     -H "Content-Type: application/json" \
+     -H "X-API-Key: YOUR_API_KEY" \
+     -d '{"url":"https://raw.githubusercontent.com/file-fixtures/test.zip"}'
+
+   # Test safe download streaming
+   curl -fL -X POST "https://YOUR_DOMAIN/api/v1/download" \
+     -H "Content-Type: application/json" \
+     -H "X-API-Key: YOUR_API_KEY" \
+     -d '{"url":"https://raw.githubusercontent.com/file-fixtures/test.zip","mode":"stream"}' \
+     -o test_download.zip
+   ```
+
+---
+
+## 7. API Key Rotation
+
+To rotate API keys without downtime:
+1. Update `API_KEY` in your environment (e.g. Render Dashboard or `.env`).
+2. Reload or restart the application:
+   - On Render/Railway/Fly.io: The platform executes a rolling update.
+   - On Docker Compose: `docker compose up -d --no-deps api`
+   - On PM2: `pm2 reload smmpro-downloader`
+3. Update frontend client configurations to the new key.
+4. Verify using:
+   ```bash
+   curl -i https://YOUR_DOMAIN/api/v1/health -H "X-API-Key: NEW_KEY"
+   ```
+
+---
+
+## 8. Nginx Reverse Proxy & SSL Termination
 
 Expose the API publicly through Nginx with HTTPS, rate limiting, and HTTP/2.
 

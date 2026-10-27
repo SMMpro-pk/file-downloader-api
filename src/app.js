@@ -1,3 +1,5 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
@@ -5,9 +7,14 @@ import { pinoHttp } from 'pino-http';
 import { env } from './config/env.js';
 import { LIMITS } from './config/limits.js';
 import { logger } from './utils/logger.js';
+import { AppError } from './utils/errors.js';
 import { requestIdMiddleware } from './middleware/request-id.middleware.js';
 import { notFoundHandler, errorHandler } from './middleware/error.middleware.js';
 import routes from './routes/index.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const publicDir = path.join(__dirname, 'public');
 
 export const app = express();
 
@@ -25,12 +32,13 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"], // Required for Swagger UI
-        styleSrc: ["'self'", "'unsafe-inline'"], // Required for Swagger UI
-        imgSrc: ["'self'", 'data:', 'https:']
+        scriptSrc: ["'self'", "'unsafe-inline'"], // Required for Swagger UI and dashboard
+        styleSrc: ["'self'", "'unsafe-inline'"], // Required for Swagger UI and dashboard
+        imgSrc: ["'self'", 'data:', 'https:'],
+        connectSrc: ["'self'"]
       }
     },
-    crossOriginEmbedderPolicy: false // Allows embedding in Swagger UI if needed
+    crossOriginEmbedderPolicy: false
   })
 );
 
@@ -43,7 +51,7 @@ app.use(
       if (env.CORS_ORIGINS.includes('*') || env.CORS_ORIGINS.includes(origin)) {
         return callback(null, true);
       }
-      return callback(new Error(`CORS origin "${origin}" is not permitted.`));
+      return callback(new AppError('FORBIDDEN_ORIGIN', `CORS origin "${origin}" is not permitted.`, 403));
     },
     methods: ['GET', 'POST', 'HEAD', 'OPTIONS'],
     allowedHeaders: [
@@ -53,7 +61,8 @@ app.use(
       'Range',
       'X-Request-Id',
       'x-allow-local-test',
-      'x-test-rate-limit'
+      'x-test-rate-limit',
+      'x-test-internal-proxy'
     ],
     exposedHeaders: [
       'Content-Disposition',
@@ -86,7 +95,9 @@ app.use(
     customSuccessMessage: (req, res) => `${req.method} ${req.originalUrl} ${res.statusCode}`,
     customErrorMessage: (req, res, err) => `${req.method} ${req.originalUrl} ${res.statusCode} - ${err.message}`,
     autoLogging: {
-      ignore: (req) => req.originalUrl === '/api/v1/health' && process.env.NODE_ENV === 'test'
+      ignore: (req) =>
+        (req.originalUrl === '/api/v1/health' || req.originalUrl === '/api/v1/ready') &&
+        process.env.NODE_ENV === 'test'
     }
   })
 );
@@ -95,13 +106,25 @@ app.use(
 app.use(express.json({ limit: LIMITS.MAX_REQUEST_BODY_BYTES }));
 app.use(express.urlencoded({ extended: false, limit: LIMITS.MAX_REQUEST_BODY_BYTES }));
 
-// 6. Mount application routes
+// 6. Serve static files from src/public
+app.use(express.static(publicDir));
+
+// 7. Public web pages (Homepage and Live Testing Dashboard)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(publicDir, 'index.html'));
+});
+
+app.get('/test', (req, res) => {
+  res.sendFile(path.join(publicDir, 'test.html'));
+});
+
+// 8. Mount application API routes
 app.use(routes);
 
-// 7. 404 Handler for undefined routes
+// 9. 404 Handler for undefined routes
 app.use(notFoundHandler);
 
-// 8. Global Error Handler
+// 10. Global Error Handler
 app.use(errorHandler);
 
 export default app;

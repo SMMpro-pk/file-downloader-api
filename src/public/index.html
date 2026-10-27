@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SMMpro File Downloader — One-Click File Detection & Secure Streaming API</title>
+  <meta name="description" content="Production-ready REST API & Web Dashboard to detect downloadable files from URLs, verify real binary formats, extract metadata, and securely stream downloads. Built for SMMpro.">
+  <meta name="theme-color" content="#6552E6">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236552E6'><path d='M12 2v13m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2'/></svg>">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header class="navbar">
+    <div class="container navbar-content">
+      <a href="/" class="brand">
+        <span class="brand-badge">SMMpro</span>
+        <span>File Downloader</span>
+      </a>
+      <nav>
+        <ul class="nav-links">
+          <li><span class="status-pill status-live"><span class="status-dot"></span><span class="status-text">Operational</span></span></li>
+          <li><a href="/test" class="nav-link active">Live Test Dashboard</a></li>
+          <li><a href="/api/docs" id="link-docs" class="nav-link">API Docs</a></li>
+          <li><a href="https://smmpro.pk/" target="_blank" rel="noopener noreferrer" class="nav-link">SMMpro Website</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <main>
+    <section class="hero">
+      <div class="container">
+        <div class="hero-tag">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Zero-Trust SSRF Protected & Binary Verified
+        </div>
+        <h1 class="hero-title">Detect, Verify & Stream Files with <span>SMMpro</span></h1>
+        <p class="hero-subtitle">
+          An enterprise-ready REST API to inspect remote URLs, accurately determine true file formats via binary signatures, extract rich metadata, and stream downloads with backpressure.
+        </p>
+
+        <!-- Quick URL Input Card -->
+        <div class="card" style="max-width: 760px; margin: 0 auto; text-align: left;">
+          <label for="target-url" style="font-weight: 600; font-size: 0.95rem; margin-bottom: 0.5rem; display: block; color: var(--navy);">
+            Enter Public File URL to Inspect:
+          </label>
+          <div class="input-group">
+            <input type="url" id="target-url" class="input-field" placeholder="https://example.com/files/document.pdf or .zip" spellcheck="false" autocomplete="off">
+            <button id="btn-detect" class="btn btn-primary">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              Detect File
+            </button>
+            <button id="btn-clear" class="btn btn-secondary">Clear</button>
+          </div>
+
+          <!-- Sample URLs -->
+          <div class="sample-urls">
+            <span style="color: var(--gray-500); font-weight: 500;">Quick Test URLs:</span>
+            <button class="sample-url-btn" data-url="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe">Unsplash (Image)</button>
+            <button class="sample-url-btn" data-url="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf">W3C (PDF)</button>
+            <button class="sample-url-btn" data-url="https://speed.hetzner.de/100MB.bin">Hetzner (100MB Stream)</button>
+          </div>
+
+          <!-- Alert Boxes -->
+          <div id="error-box" class="alert alert-danger"></div>
+          <div id="warn-box" class="alert alert-warning"></div>
+
+          <!-- Results Card -->
+          <div id="results-card" class="results-card">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; border-bottom: 1px solid var(--gray-200); padding-bottom: 0.75rem;">
+              <h3 style="font-size: 1.15rem; color: var(--navy); display: flex; align-items: center; gap: 0.5rem;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                File Detection Results
+              </h3>
+              <a href="/test" class="btn btn-sm btn-secondary">Open Full Test Dashboard →</a>
+            </div>
+
+            <div class="meta-grid">
+              <div class="meta-box">
+                <div class="meta-box-label">Filename</div>
+                <div id="res-filename" class="meta-box-val">-</div>
+              </div>
+              <div class="meta-box">
+                <div class="meta-box-label">Detected Format</div>
+                <div id="res-format" class="meta-box-val">-</div>
+              </div>
+              <div class="meta-box">
+                <div class="meta-box-label">File Size</div>
+                <div id="res-size" class="meta-box-val">-</div>
+              </div>
+              <div class="meta-box">
+                <div class="meta-box-label">Format Status</div>
+                <div style="margin-top: 0.25rem;"><span id="res-status" class="tag status-live">-</span></div>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+              <button id="btn-download" class="btn btn-success" disabled>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download Stream
+              </button>
+              <a href="/test" class="btn btn-secondary">Detailed Technical View</a>
+            </div>
+
+            <!-- Progress bar -->
+            <div id="progress-container" class="progress-container">
+              <div class="progress-bar-bg">
+                <div id="progress-bar-fill" class="progress-bar-fill"></div>
+              </div>
+              <div class="progress-meta">
+                <span id="progress-text">Streaming file...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Live Deployment Information Dashboard -->
+    <section class="container">
+      <div class="deployment-banner">
+        <div class="deployment-header">
+          <h2 class="deployment-title">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+            Live Deployment & API Status
+          </h2>
+          <span class="status-pill status-live">
+            <span class="status-dot"></span>
+            <span class="status-text">Live Service</span>
+          </span>
+        </div>
+
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">Application</div>
+            <div class="info-value" id="display-app-name">SMMpro File Downloader</div>
+          </div>
+
+          <div class="info-item">
+            <div class="info-label">API Base URL (For Frontend Apps)</div>
+            <div class="info-value-wrap">
+              <span class="info-value" id="display-api-url">/api/v1</span>
+              <button class="btn-copy" data-target="display-api-url" title="Copy API Base URL">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="info-item">
+            <div class="info-label">Public Domain Origin</div>
+            <div class="info-value-wrap">
+              <span class="info-value" id="display-public-url">Detecting...</span>
+              <button class="btn-copy" data-target="display-public-url" title="Copy Public URL">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="info-item">
+            <div class="info-label">Health & Readiness</div>
+            <div class="info-value-wrap">
+              <a href="/api/v1/health" id="link-health" target="_blank" class="info-value" style="text-decoration: underline;">/api/v1/health</a>
+              <span class="tag status-live" style="margin-left: auto;">Healthy</span>
+            </div>
+          </div>
+
+          <div class="info-item">
+            <div class="info-label">Interactive API Docs</div>
+            <div class="info-value-wrap">
+              <a href="/api/docs" id="link-docs" class="info-value" style="text-decoration: underline;">Swagger UI Documentation</a>
+            </div>
+          </div>
+
+          <div class="info-item">
+            <div class="info-label">Authentication Mode</div>
+            <div class="info-value" id="display-auth-status">Checking...</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quickstart Integration Section -->
+    <section class="container" style="margin-bottom: 4rem;">
+      <div class="section-header">
+        <h2 class="section-title">Quickstart API Integration</h2>
+        <p class="section-subtitle">Copy ready-to-use curl commands configured with your live deployment URL.</p>
+      </div>
+
+      <div class="grid-3" style="grid-template-columns: 1fr 1fr;">
+        <div>
+          <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--navy);">1. Detect File Format via REST</h3>
+          <div class="code-box">
+            <div class="code-box-header">
+              <span>POST /files/detect</span>
+              <button class="btn-copy" data-target="curl-detect-snippet" title="Copy curl command">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+            <pre id="curl-detect-snippet">curl -X POST "/api/v1/files/detect" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://example.com/file.zip"}'</pre>
+          </div>
+        </div>
+
+        <div>
+          <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--navy);">2. Stream Proxied File Download</h3>
+          <div class="code-box">
+            <div class="code-box-header">
+              <span>POST /download</span>
+              <button class="btn-copy" data-target="curl-download-snippet" title="Copy curl command">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+            <pre id="curl-download-snippet">curl -fL -X POST "/api/v1/download" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://example.com/file.zip","mode":"stream"}' \
+  -o downloaded_file.zip</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Supported Formats Section -->
+    <section class="formats-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">Supported File Formats</h2>
+          <p class="section-subtitle">Identified via true binary signatures and extensible MIME classification.</p>
+        </div>
+
+        <div class="grid-3">
+          <div class="format-card">
+            <div class="format-card-header">
+              <div class="format-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+              </div>
+              <div>
+                <h3 style="font-size: 1.1rem;">Archives & Compressed</h3>
+                <span style="font-size: 0.85rem; color: var(--gray-500);">Central Directory & Bomb Safe</span>
+              </div>
+            </div>
+            <div class="tags-wrap">
+              <span class="tag">ZIP</span><span class="tag">RAR</span><span class="tag">7Z</span><span class="tag">TAR</span><span class="tag">GZ</span><span class="tag">BZ2</span><span class="tag">XZ</span>
+            </div>
+          </div>
+
+          <div class="format-card">
+            <div class="format-card-header">
+              <div class="format-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              </div>
+              <div>
+                <h3 style="font-size: 1.1rem;">Documents & Office</h3>
+                <span style="font-size: 0.85rem; color: var(--gray-500);">Validated Document Containers</span>
+              </div>
+            </div>
+            <div class="tags-wrap">
+              <span class="tag">PDF</span><span class="tag">DOC</span><span class="tag">DOCX</span><span class="tag">XLS</span><span class="tag">XLSX</span><span class="tag">PPT</span><span class="tag">PPTX</span><span class="tag">TXT</span><span class="tag">CSV</span><span class="tag">EPUB</span>
+            </div>
+          </div>
+
+          <div class="format-card">
+            <div class="format-card-header">
+              <div class="format-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              </div>
+              <div>
+                <h3 style="font-size: 1.1rem;">Images & Graphics</h3>
+                <span style="font-size: 0.85rem; color: var(--gray-500);">Modern Vector & Raster</span>
+              </div>
+            </div>
+            <div class="tags-wrap">
+              <span class="tag">JPG</span><span class="tag">PNG</span><span class="tag">WEBP</span><span class="tag">GIF</span><span class="tag">SVG</span><span class="tag">AVIF</span><span class="tag">TIFF</span><span class="tag">BMP</span>
+            </div>
+          </div>
+
+          <div class="format-card">
+            <div class="format-card-header">
+              <div class="format-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+              </div>
+              <div>
+                <h3 style="font-size: 1.1rem;">Audio & Video</h3>
+                <span style="font-size: 0.85rem; color: var(--gray-500);">Media Stream Proxying</span>
+              </div>
+            </div>
+            <div class="tags-wrap">
+              <span class="tag">MP4</span><span class="tag">WEBM</span><span class="tag">MOV</span><span class="tag">MKV</span><span class="tag">MP3</span><span class="tag">WAV</span><span class="tag">FLAC</span><span class="tag">AAC</span><span class="tag">OGG</span>
+            </div>
+          </div>
+
+          <div class="format-card">
+            <div class="format-card-header">
+              <div class="format-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              </div>
+              <div>
+                <h3 style="font-size: 1.1rem;">Software & Packages</h3>
+                <span style="font-size: 0.85rem; color: var(--gray-500);">Safety Flagged Packages</span>
+              </div>
+            </div>
+            <div class="tags-wrap">
+              <span class="tag">APK</span><span class="tag">EXE</span><span class="tag">MSI</span><span class="tag">DMG</span><span class="tag">ISO</span><span class="tag">DEB</span><span class="tag">RPM</span>
+            </div>
+          </div>
+
+          <div class="format-card">
+            <div class="format-card-header">
+              <div class="format-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </div>
+              <div>
+                <h3 style="font-size: 1.1rem;">Webpage Link Extractor</h3>
+                <span style="font-size: 0.85rem; color: var(--gray-500);">HTML Anchor Discovery</span>
+              </div>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--gray-600);">Discovers downloadable candidates directly inside public HTML pages with relative URL resolution.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Core Features Section -->
+    <section class="features-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">Built for Performance & Security</h2>
+          <p class="section-subtitle">Engineered with defensive controls to prevent server exploitation.</p>
+        </div>
+
+        <div class="grid-3">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <h3 class="feature-title">SSRF & Rebinding Defense</h3>
+            <p class="feature-desc">Socket-level IP pinning blocks loopbacks, private networks, cloud metadata (169.254.169.254), and TOCTOU DNS rebinding.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <h3 class="feature-title">Zero Disk Buffering</h3>
+            <p class="feature-desc">Files stream directly via Node.js backpressure pipelines. Downloads consume minimal memory and zero permanent disk space.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </div>
+            <h3 class="feature-title">Byte-Range Requests</h3>
+            <p class="feature-desc">End-to-end support for HTTP 206 Partial Content, enabling resumable downloads and media streaming seek operations.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-content">
+      <div>
+        <div style="font-weight: 700; color: var(--white); font-size: 1.1rem; margin-bottom: 0.25rem;">SMMpro File Downloader API</div>
+        <div>Developed by <a href="https://smmpro.pk/" target="_blank" rel="noopener noreferrer" style="color: var(--primary-light);">SMMpro</a>. All rights reserved © 2026.</div>
+      </div>
+      <div style="display: flex; gap: 1.5rem;">
+        <a href="/test" style="color: var(--gray-400);">Testing Dashboard</a>
+        <a href="/api/docs" style="color: var(--gray-400);">API Documentation</a>
+        <a href="/api/v1/health" style="color: var(--gray-400);">System Health</a>
+        <a href="https://smmpro.pk/" target="_blank" rel="noopener noreferrer" style="color: var(--gray-400);">Official Website</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>

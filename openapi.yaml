@@ -24,6 +24,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
+  /ready:
+    get:
+      summary: Readiness check
+      description: Returns whether the application has finished initialization and is ready to process traffic.
+      responses:
+        '200':
+          description: Service is ready.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+  /config/public:
+    get:
+      summary: Public runtime configuration & URLs
+      description: Returns public configuration, live API base URL, documentation links, and operational status without exposing secrets.
+      responses:
+        '200':
+          description: Public configuration and discovery details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
   /version:
     get:
       summary: API version
